@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
-from monitor_core import check_sites, check_ssl, load_sites, save_sites, load_status, save_status
+from core import check_sites, check_ssl, load_sites, save_sites, load_status, save_status
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
