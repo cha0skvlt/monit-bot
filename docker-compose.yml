@@ -7,4 +7,3 @@ services:
     volumes:
       - ./sites.txt:/app/sites.txt
       - ./status.json:/app/status.json
-      - ./requirements.txt:/app/requirements.txt

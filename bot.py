@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
-import time, threading, json, os
-from main import check_sites, check_ssl, load_sites, save_sites, load_status, save_status, send_alert
+import threading, time, os
 from dotenv import load_dotenv
-from telegram import Update, Bot
+from datetime import datetime
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
+from monitor_core import check_sites, check_ssl, load_sites, save_sites, load_status, save_status
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
-SITES_FILE = "/app/sites.txt"
-STATUS_FILE = "/app/status.json"
-
-from datetime import datetime
 
 def cmd_status(update: Update, ctx: CallbackContext):
     check_sites()
@@ -30,8 +26,7 @@ def cmd_status(update: Update, ctx: CallbackContext):
     update.message.reply_text("\n".join(lines), disable_web_page_preview=True)
 
 def cmd_list(update: Update, ctx: CallbackContext):
-    sites = load_sites()
-    update.message.reply_text("🔗 Сайты:\n" + "\n".join(sites), disable_web_page_preview=True)
+    update.message.reply_text("🔗 Сайты:\n" + "\n".join(load_sites()), disable_web_page_preview=True)
 
 def cmd_add(update: Update, ctx: CallbackContext):
     if not ctx.args:
@@ -63,18 +58,15 @@ def cmd_remove(update: Update, ctx: CallbackContext):
         update.message.reply_text("❌ Удалено.")
 
 def cmd_ssl_check(update: Update, ctx: CallbackContext):
-    result = check_ssl()
-    update.message.reply_text(result, disable_web_page_preview=True)
+    update.message.reply_text(check_ssl(), disable_web_page_preview=True)
 
 def cmd_help(update: Update, ctx: CallbackContext):
     update.message.reply_text("""📟 Команды:
 /status — статус сайтов
 /ssl — проверить SSL
-
 /list — список сайтов
 /add URL — добавить
 /remove URL — удалить
-
 /help — справка
 """, disable_web_page_preview=True)
 
