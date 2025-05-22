@@ -11,22 +11,27 @@ CHAT_ID = os.getenv("CHAT_ID")
 SITES_FILE = "/app/sites.txt"
 STATUS_FILE = "/app/status.json"
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Telegram Command Handlers
+from datetime import datetime
 
 def cmd_status(update: Update, ctx: CallbackContext):
+    check_sites()
     status = load_status()
-    text = ""
+    lines = ["🔁 Актуальный статус:"]
     for site, data in status.items():
         if data["down_since"]:
-            text += f"🔴 {site} — down с {data['down_since']}\n"
+            try:
+                ts = datetime.fromisoformat(data["down_since"])
+                formatted = ts.strftime("%Y-%m-%d %H:%M")
+            except:
+                formatted = data["down_since"]
+            lines.append(f"🔴 {site} — down с {formatted}")
         else:
-            text += f"🟢 {site} — OK\n"
-    update.message.reply_text(text or "Список пуст.")
+            lines.append(f"🟢 {site} — OK")
+    update.message.reply_text("\n".join(lines), disable_web_page_preview=True)
 
 def cmd_list(update: Update, ctx: CallbackContext):
     sites = load_sites()
-    update.message.reply_text("🔗 Сайты:\n" + "\n".join(sites))
+    update.message.reply_text("🔗 Сайты:\n" + "\n".join(sites), disable_web_page_preview=True)
 
 def cmd_add(update: Update, ctx: CallbackContext):
     if not ctx.args:
@@ -57,26 +62,21 @@ def cmd_remove(update: Update, ctx: CallbackContext):
         save_status(status)
         update.message.reply_text("❌ Удалено.")
 
-def cmd_force_check(update: Update, ctx: CallbackContext):
-    check_sites()
-    update.message.reply_text("🔁 Проверка запущена.")
-
 def cmd_ssl_check(update: Update, ctx: CallbackContext):
-    check_ssl()
-    update.message.reply_text("🔐 SSL проверка запущена.")
+    result = check_ssl()
+    update.message.reply_text(result, disable_web_page_preview=True)
 
 def cmd_help(update: Update, ctx: CallbackContext):
     update.message.reply_text("""📟 Команды:
 /status — статус сайтов
+/ssl — проверить SSL
+
 /list — список сайтов
 /add URL — добавить
 /remove URL — удалить
-/force_check — проверить доступность
-/ssl_check — проверить SSL
-/help — справка""")
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Фоновая проверка
+/help — справка
+""", disable_web_page_preview=True)
 
 def background_loop():
     while True:
@@ -86,9 +86,6 @@ def background_loop():
             check_ssl()
         time.sleep(60)
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Запуск
-
 def start_bot():
     updater = Updater(token=TOKEN, use_context=True)
     dp = updater.dispatcher
@@ -96,8 +93,7 @@ def start_bot():
     dp.add_handler(CommandHandler("list", cmd_list))
     dp.add_handler(CommandHandler("add", cmd_add))
     dp.add_handler(CommandHandler("remove", cmd_remove))
-    dp.add_handler(CommandHandler("force_check", cmd_force_check))
-    dp.add_handler(CommandHandler("ssl_check", cmd_ssl_check))
+    dp.add_handler(CommandHandler("ssl", cmd_ssl_check))
     dp.add_handler(CommandHandler("help", cmd_help))
     updater.start_polling()
 
