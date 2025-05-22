@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  monitor:
+    build: .
+    container_name: site_monitor
+    restart: always
+    env_file: .env
+    volumes:
+      - ./sites.txt:/app/sites.txt
+      - ./status.json:/app/status.json
+      - ./requirements.txt:/app/requirements.txt
