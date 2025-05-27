@@ -1,36 +1,49 @@
-# 🛡️ Telegram Site Monitor
+# 🛡️ Web Monitor Telegram Bot  
 ## @cha0skvlt
 
-Minimal, production-ready **Dockerized monitoring bot** for checking website availability and SSL expiration.  
-Sends alerts directly to Telegram. Lightweight. Clean. Perfect for personal or business use.
+Lightweight, production-ready **monitoring bot in Docker**  
+Tracks **site availability** and **SSL lifetime**, sends **Telegram alerts**, and logs to file for **Grafana/ELK** dashboards.
 
-![Docker](https://img.shields.io/badge/docker-ready-blue) ![Python](https://img.shields.io/badge/python-3.11+-green) ![License](https://img.shields.io/badge/license-MIT-lightgrey)
-
----
-
-## 🚀 Features
-
-- 🌐 **Uptime check** every minute (HTTP 200 validation)
-- 🔐 **SSL expiration** alert daily (7-day warning)
-- 🤖 **Telegram Bot Interface**
-  - `/status` — show all site statuses
-  - `/list` — list monitored URLs
-  - `/add https://example.com` — add a site
-  - `/remove https://example.com` — remove a site
-  - `/ssl` — manual SSL cert check
-  - `/help` — all commands
-- 💾 Persistent state in `status.json`
-- 🔁 Auto-restart with `restart: always`
-- 🧱 Modular structure: `core.py` (logic), `bot.py` (interface)
+![Docker](https://img.shields.io/badge/docker-ready-blue)
+![Python](https://img.shields.io/badge/python-3.11+-green)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ---
 
-## ⚙️ Quickstart
+## ⚙️ Features
+
+- 🌍 **Uptime Monitoring**  
+  Checks each site every minute (HTTP status 200)  
+  Alerts: after 5 min of downtime, then hourly
+
+- 🔐 **SSL Certificate Lifetime**  
+  Daily auto-check at 06:00 UTC  (09:00 Moskow)
+  Alerts: if cert expires in ≤ 7 days
+
+- 📡 **Telegram Bot Interface**  
+  - `/status` — current site states  
+  - `/ssl` — manual SSL check  
+  - `/list` — show monitored URLs  
+  - `/add URL` — add new site  
+  - `/remove URL` — remove site  
+  - `/help` — command summary
+
+- 💾 **Stateful & Durable**  
+  - Persistent files: `sites.txt`, `status.json`, `monitor.log`  
+  - Autostart: Docker `restart: always`
+
+- 📄 **Structured Logging**  
+  - Logs in JSON format for external analysis  
+  - Compatible with **Grafana Loki**, ELK, or custom scripts
+
+---
+
+## 🚀 Quickstart
 
 ```bash
 git clone https://github.com/YOURUSER/telegram-site-monitor.git
 cd telegram-site-monitor
 
-cp .env.example .env  # Add your BOT_TOKEN and CHAT_ID
+cp .env.example .env  # insert your BOT_TOKEN and CHAT_ID
 
 docker compose up --build -d

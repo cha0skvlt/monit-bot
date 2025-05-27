@@ -1,4 +1,5 @@
-import os, json, ssl, socket, datetime, requests
+#!/usr/bin/env python3
+import os, json, ssl, socket, datetime, requests, logging
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
@@ -7,30 +8,38 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SITES_FILE = "/app/sites.txt"
 STATUS_FILE = "/app/status.json"
+LOG_FILE = "/app/logs/monitor.log"
 
-def send_alert(msg):
-    """Отправка уведомления в Telegram."""
+logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(message)s')
+
+def log_event(data: dict):
+    """Append structured JSON event to log file."""
+    data["timestamp"] = datetime.datetime.utcnow().isoformat() + "Z"
+    logging.info(json.dumps(data))
+
+def send_alert(msg, disable_web_page_preview=True):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     try:
-        requests.post(url, data={"chat_id": CHAT_ID, "text": msg}, timeout=5)
+        requests.post(url, data={
+            "chat_id": CHAT_ID,
+            "text": msg,
+            "disable_web_page_preview": disable_web_page_preview
+        }, timeout=5)
     except:
-        pass  # не ломаем поток
+        pass
 
 def load_sites():
-    """Чтение списка сайтов из файла."""
     if not os.path.exists(SITES_FILE):
         return []
     with open(SITES_FILE) as f:
         return [line.strip() for line in f if line.strip()]
 
 def save_sites(sites):
-    """Сохранение списка сайтов в файл."""
     with open(SITES_FILE, "w") as f:
         for s in sites:
             f.write(s.strip() + "\n")
 
 def load_status():
-    """Чтение статуса сайтов (UP/DOWN) из файла."""
     if not os.path.exists(STATUS_FILE):
         return {}
     try:
@@ -40,12 +49,10 @@ def load_status():
         return {}
 
 def save_status(data):
-    """Сохранение статуса сайтов в файл."""
     with open(STATUS_FILE, "w") as f:
         json.dump(data, f)
 
 def check_sites():
-    """Проверка доступности сайтов."""
     sites = load_sites()
     status = load_status()
     now = datetime.datetime.utcnow()
@@ -54,8 +61,9 @@ def check_sites():
         try:
             r = requests.get(site, timeout=10)
             if r.status_code == 200:
+                log_event({"type": "site_check", "site": site, "status": "up", "available": 1})
                 if site in status and status[site]["down_since"]:
-                    send_alert(f"✅ {site} восстановлен")
+                    send_alert(f"✅ {site} is back online", disable_web_page_preview=True)
                 status[site] = {"down_since": None}
             else:
                 raise Exception(f"Status {r.status_code}")
@@ -65,15 +73,26 @@ def check_sites():
             else:
                 delta = now - datetime.datetime.fromisoformat(status[site]["down_since"])
                 minutes = int(delta.total_seconds() // 60)
-                if minutes >= 5 and minutes % 10 == 0:
-                    send_alert(f"❌ {site} недоступен {minutes} минут")
+                if minutes == 5 or (minutes > 5 and minutes % 60 == 0):
+                    hours = minutes // 60
+                    mins = minutes % 60
+                    log_event({
+                        "type": "site_check",
+                        "site": site,
+                        "status": "down",
+                        "available": 0,
+                        "duration_min": minutes
+                    })
+                    if hours:
+                        send_alert(f"❌ {site} is down for {hours}h {mins}m", disable_web_page_preview=True)
+                    else:
+                        send_alert(f"❌ {site} is down for {mins}m", disable_web_page_preview=True)
 
     save_status(status)
 
 def check_ssl():
-    """Проверка SSL-сертификатов сайтов."""
     sites = load_sites()
-    results = ["🔐 SSL-сертификаты:"]
+    results = ["🔐 SSL certificates lifetime:"]
     for site in sites:
         hostname = urlparse(site).hostname
         try:
@@ -84,8 +103,24 @@ def check_ssl():
                 cert = s.getpeercert()
                 expires = datetime.datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
                 days_left = (expires - datetime.datetime.utcnow()).days
-                date_str = expires.strftime('%Y-%m-%d')
-                results.append(f"- {hostname}: {days_left} дней до окончания ({date_str})")
+                status_icon = "⚠️" if days_left <= 7 else "✅"
+                results.append(f"{status_icon} {hostname} — {days_left} days")
+                log_event({"type": "ssl_check", "site": hostname, "status": "valid", "days_left": days_left})
         except:
-            results.append(f"- {hostname}: ❌ сертификат не получен")
+            results.append(f"❌ {hostname}: SSL certificate not available")
+            log_event({"type": "ssl_check", "site": hostname, "status": "error"})
     return "\n".join(results)
+
+def daily_ssl_loop():
+    while True:
+        now = datetime.datetime.utcnow()
+        target = now.replace(hour=6, minute=0, second=0, microsecond=0)
+        if now >= target:
+            target += datetime.timedelta(days=1)
+        sleep_seconds = (target - now).total_seconds()
+        time.sleep(sleep_seconds)
+
+        result = check_ssl()
+        alerts = [line for line in result.splitlines() if line.startswith("⚠️")]
+        if alerts:
+            send_alert("⚠️ Sites with expiring SSL certificates:\n" + "\n".join(alerts), disable_web_page_preview=True)

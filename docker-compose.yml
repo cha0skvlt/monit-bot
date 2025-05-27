@@ -1,9 +1,16 @@
 services:
-  monitor:
-    build: .
+  site_monitor:
     container_name: site_monitor
+    build: .
     restart: always
-    env_file: .env
+    env_file:
+      - .env
     volumes:
       - ./sites.txt:/app/sites.txt
       - ./status.json:/app/status.json
+      - ./logs:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
