@@ -47,3 +47,11 @@ cd telegram-site-monitor
 cp .env.example .env  # insert your BOT_TOKEN and CHAT_ID
 
 docker compose up --build -d
+```
+
+### Running tests
+
+```bash
+pip install -r requirements.txt
+pytest
+```
