@@ -47,3 +47,25 @@ cd telegram-site-monitor
 cp .env.example .env  # insert your BOT_TOKEN and CHAT_ID
 
 docker compose up --build -d
+```
+
+### Configuration
+
+Update `.env` with your bot credentials:
+
+```env
+BOT_TOKEN=your_bot_token
+CHAT_ID=your_chat_id
+```
+
+Add starting URLs to `sites.txt` or manage them via Telegram commands:
+`/add`, `/remove` and `/list`.
+
+Logs are written to `./logs/monitor.log` for external analysis.
+
+### Running tests
+
+```bash
+pip install -r requirements.txt
+pytest
+```
