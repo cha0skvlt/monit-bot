@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, json, ssl, socket, datetime, requests, logging
+import os, json, ssl, socket, datetime, requests, logging, time
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
