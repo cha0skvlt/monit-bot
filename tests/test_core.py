@@ -128,3 +128,21 @@ def test_env_defaults(monkeypatch):
         importlib.reload(core_mod)
 
 
+def test_log_dir_autocreate(tmp_path, monkeypatch):
+    log_dir = tmp_path / "sub" / "dir"
+    log_file = log_dir / "log.log"
+    monkeypatch.setenv("LOG_FILE", str(log_file))
+    import importlib, logging
+    for h in logging.root.handlers[:]:
+        logging.root.removeHandler(h)
+    import core as core_mod
+    importlib.reload(core_mod)
+    try:
+        assert log_file.exists()
+    finally:
+        monkeypatch.delenv("LOG_FILE", raising=False)
+        for h in logging.root.handlers[:]:
+            logging.root.removeHandler(h)
+        importlib.reload(core_mod)
+
+

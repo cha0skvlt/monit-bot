@@ -23,7 +23,8 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 1. Clone this repository.
 2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
    Optional variables `SITES_FILE`, `STATUS_FILE` and `LOG_FILE` allow
-   changing paths to the data files.
+   changing paths to the data files. The directory for `LOG_FILE` is
+   created automatically if it doesn't exist.
 3. Build and start the container:
 
 ```bash

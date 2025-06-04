@@ -12,6 +12,10 @@ SITES_FILE = os.getenv("SITES_FILE", "/app/sites.txt")
 STATUS_FILE = os.getenv("STATUS_FILE", "/app/status.json")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
 
+log_dir = os.path.dirname(LOG_FILE)
+if log_dir:
+    os.makedirs(log_dir, exist_ok=True)
+
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(message)s")
 
 def log_event(data: dict):
