@@ -20,6 +20,7 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 
 
 
+
 ## Setup
 
 1. Clone this repository.
