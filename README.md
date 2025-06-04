@@ -21,22 +21,20 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 
 ## Setup
 
-
-## Setup
-
 1. Clone this repository.
 2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
-3. Build and start the container:
+3. Create an empty state file:
 
-1. Clone this repository.
-2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
-3. Build and start the container:
+   ```bash
+   echo '{}' > status.json
+   ```
+4. Build and start the container:
 
-```bash
-docker compose up --build -d
-```
+   ```bash
+   docker compose up --build -d
+   ```
 
-The compose file mounts the data files and restarts the bot automatically.
+   `status.json` must exist before running `docker compose up`. The compose file mounts the data files and restarts the bot automatically.
 
 
 ## 📚 Документация на русском
