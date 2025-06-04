@@ -74,6 +74,21 @@ def cmd_ssl_check(update: Update, ctx: CallbackContext):
     update.message.reply_text(check_ssl(), disable_web_page_preview=True)
 
 @with_typing
+def cmd_start(update: Update, ctx: CallbackContext):
+    update.message.reply_text("""
+👋 Welcome! I'm a web monitoring bot by @cha0skvlt.
+I check sites every minute and verify SSL certificates daily.
+
+Available commands:
+/status  — current site states
+/ssl     — manual SSL check
+/list    — list of monitored URLs
+/add     — add site
+/remove  — remove site
+/help    — show help
+""", disable_web_page_preview=True)
+
+@with_typing
 def cmd_help(update: Update, ctx: CallbackContext):
     update.message.reply_text("""🤖 Web monitoring bot:
 
@@ -107,6 +122,7 @@ def start_bot():
     dp.add_handler(CommandHandler("add", cmd_add))
     dp.add_handler(CommandHandler("remove", cmd_remove))
     dp.add_handler(CommandHandler("ssl", cmd_ssl_check))
+    dp.add_handler(CommandHandler("start", cmd_start))
     dp.add_handler(CommandHandler("help", cmd_help))
     updater.start_polling()
 
