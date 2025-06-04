@@ -16,9 +16,17 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 - 💾 **Durable State** – URLs, status and logs are kept on disk (`sites.txt`, `status.json`, `monitor.log`). Suitable for mounting as Docker volumes.
 - 📄 **Structured Logging** – events are written in JSON so they can be easily processed by Grafana Loki, ELK or other tools.
 
----
+
+
 
 ## Setup
+
+
+## Setup
+
+1. Clone this repository.
+2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
+3. Build and start the container:
 
 1. Clone this repository.
 2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
@@ -29,6 +37,13 @@ docker compose up --build -d
 ```
 
 The compose file mounts the data files and restarts the bot automatically.
+
+
+## 📚 Документация на русском
+
+Более подробное руководство по настройке и работе проекта находится в файле
+[`docs/guide_ru.md`](docs/guide_ru.md).
+
 
 ### Running tests
 
