@@ -19,15 +19,17 @@ def with_typing(func):
 def cmd_status(update: Update, ctx: CallbackContext):
     check_sites()
     status = load_status()
+    sites = load_sites()
     lines = ["🌐 Site status:"]
-    for site, data in status.items():
+    for site in sites:
+        data = status.get(site, {"down_since": None})
         if data["down_since"]:
             try:
                 ts = datetime.fromisoformat(data["down_since"])
                 date_str = ts.strftime("%Y-%m-%d")
                 time_str = ts.strftime("%H:%M")
                 formatted = f"{date_str} ({time_str})"
-            except:
+            except Exception:
                 formatted = data["down_since"]
             lines.append(f"🔴 {site} — DOWN since {formatted}")
         else:
@@ -75,24 +77,9 @@ def cmd_ssl_check(update: Update, ctx: CallbackContext):
 
 @with_typing
 def cmd_start(update: Update, ctx: CallbackContext):
-    update.message.reply_text("""
-👋 Welcome! I'm a web monitoring bot by @cha0skvlt.
-I check sites every minute and verify SSL certificates daily.
-
-Available commands:
-/status  — current site states
-/ssl     — manual SSL check
-/list    — list of monitored URLs
-/add     — add site
-/remove  — remove site
-/help    — show help
-""", disable_web_page_preview=True)
-
-@with_typing
-def cmd_help(update: Update, ctx: CallbackContext):
     update.message.reply_text("""🤖 Web monitoring bot:
 
-🕘 SSL auto-check runs daily at 09:00 UTC.
+🕘 SSL auto-check runs daily at 06:00 UTC.
 ⚠️ Alerts if any cert expires in ≤ 7 days.
 🚨 Site downtime alerts: first at 5 min, then hourly.
 ➕ Sites are managed via Telegram.
@@ -105,6 +92,7 @@ def cmd_help(update: Update, ctx: CallbackContext):
 /add     — add site
 /remove  — remove site
 """, disable_web_page_preview=True)
+
 
 def background_loop():
     while True:
@@ -123,7 +111,6 @@ def start_bot():
     dp.add_handler(CommandHandler("remove", cmd_remove))
     dp.add_handler(CommandHandler("ssl", cmd_ssl_check))
     dp.add_handler(CommandHandler("start", cmd_start))
-    dp.add_handler(CommandHandler("help", cmd_help))
     updater.start_polling()
 
 if __name__ == "__main__":
