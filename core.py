@@ -65,6 +65,8 @@ def save_status(data):
 
 def check_sites():
     sites = load_sites()
+    if not sites:
+        return
     status = load_status()
     now = datetime.datetime.utcnow()
 
@@ -76,7 +78,10 @@ def check_sites():
             return site, None
 
     with ThreadPoolExecutor(max_workers=min(10, len(sites))) as executor:
-        results = list(executor.map(fetch, sites))
+        try:
+            results = list(executor.map(fetch, sites))
+        except RuntimeError:
+            return
 
     for site, code in results:
         if code == 200:
