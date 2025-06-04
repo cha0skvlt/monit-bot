@@ -65,6 +65,8 @@ def save_status(data):
 
 def check_sites():
     sites = load_sites()
+    if not sites:
+        return
     status = load_status()
     now = datetime.datetime.utcnow()
 

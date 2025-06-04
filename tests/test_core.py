@@ -95,6 +95,13 @@ def test_check_sites_recovery(monkeypatch):
     assert saved[site]["down_since"] is None
 
 
+def test_check_sites_no_sites(monkeypatch):
+    monkeypatch.setattr(core, "load_sites", lambda: [])
+    monkeypatch.setattr(core, "load_status", lambda: {})
+    monkeypatch.setattr(core, "save_status", lambda d: (_ for _ in ()).throw(AssertionError("should not save")))
+    core.check_sites()  # should not raise
+
+
 def test_env_override_files(tmp_path, monkeypatch):
     monkeypatch.setenv("SITES_FILE", str(tmp_path / "s.txt"))
     monkeypatch.setenv("STATUS_FILE", str(tmp_path / "st.json"))
