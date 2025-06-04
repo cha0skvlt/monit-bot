@@ -4,7 +4,15 @@ from dotenv import load_dotenv
 from datetime import datetime
 from telegram import Update, ChatAction
 from telegram.ext import Updater, CommandHandler, CallbackContext
-from core import check_sites, check_ssl, load_sites, save_sites, load_status, save_status, daily_ssl_loop
+from core import (
+    check_sites,
+    check_ssl,
+    load_sites,
+    save_sites,
+    load_status,
+    save_status,
+    daily_ssl_loop,
+)
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -22,6 +30,10 @@ def cmd_status(update: Update, ctx: CallbackContext):
     sites = load_sites()
     lines = ["🌐 Site status:"]
     for site in sites:
+
+        data = status.get(site)
+        if data and data.get("down_since") is None:
+
         data = status.get(site, {"down_since": None})
         if data["down_since"]:
             try:
@@ -33,36 +45,66 @@ def cmd_status(update: Update, ctx: CallbackContext):
                 formatted = data["down_since"]
             lines.append(f"🔴 {site} — DOWN since {formatted}")
         else:
+
             lines.append(f"🟢 {site} — OK")
+        else:
+            down_since = data.get("down_since") if data else None
+            if down_since:
+                try:
+                    ts = datetime.fromisoformat(down_since)
+                    formatted = ts.strftime("%Y-%m-%d (%H:%M)")
+                except Exception:
+                    formatted = down_since
+                lines.append(f"🔴 {site} — DOWN since {formatted}")
+            else:
+                lines.append(f"🔴 {site} — DOWN")
     update.message.reply_text("\n".join(lines), disable_web_page_preview=True)
 
 @with_typing
 def cmd_list(update: Update, ctx: CallbackContext):
-    update.message.reply_text("🔗 Monitored sites:\n" + "\n".join(load_sites()), disable_web_page_preview=True)
+    update.message.reply_text(
+        "🔗 Monitored sites:\n" + "\n".join(load_sites()),
+        disable_web_page_preview=True,
+    )
 
 @with_typing
 def cmd_add(update: Update, ctx: CallbackContext):
     if not ctx.args:
-        update.message.reply_text("Usage: /add https://example.com", disable_web_page_preview=True)
+        update.message.reply_text(
+            "Usage: /add https://example.com",
+            disable_web_page_preview=True,
+        )
         return
     site = ctx.args[0]
     sites = load_sites()
     if site in sites:
-        update.message.reply_text("Site already added.", disable_web_page_preview=True)
+        update.message.reply_text(
+            "Site already added.",
+            disable_web_page_preview=True,
+        )
     else:
         sites.append(site)
         save_sites(sites)
-        update.message.reply_text("✅ Added.", disable_web_page_preview=True)
+        update.message.reply_text(
+            "✅ Added.",
+            disable_web_page_preview=True,
+        )
 
 @with_typing
 def cmd_remove(update: Update, ctx: CallbackContext):
     if not ctx.args:
-        update.message.reply_text("Usage: /remove https://example.com", disable_web_page_preview=True)
+        update.message.reply_text(
+            "Usage: /remove https://example.com",
+            disable_web_page_preview=True,
+        )
         return
     site = ctx.args[0]
     sites = load_sites()
     if site not in sites:
-        update.message.reply_text("Site not found.", disable_web_page_preview=True)
+        update.message.reply_text(
+            "Site not found.",
+            disable_web_page_preview=True,
+        )
     else:
         sites.remove(site)
         save_sites(sites)
