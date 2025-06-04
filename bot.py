@@ -30,34 +30,19 @@ def cmd_status(update: Update, ctx: CallbackContext):
     sites = load_sites()
     lines = ["🌐 Site status:"]
     for site in sites:
-
-        data = status.get(site)
-        if data and data.get("down_since") is None:
-
         data = status.get(site, {"down_since": None})
-        if data["down_since"]:
+        down_since = data.get("down_since")
+
+        if down_since:
             try:
-                ts = datetime.fromisoformat(data["down_since"])
-                date_str = ts.strftime("%Y-%m-%d")
-                time_str = ts.strftime("%H:%M")
-                formatted = f"{date_str} ({time_str})"
+                ts = datetime.fromisoformat(down_since)
+                formatted = ts.strftime("%Y-%m-%d (%H:%M)")
             except Exception:
-                formatted = data["down_since"]
+                formatted = down_since
             lines.append(f"🔴 {site} — DOWN since {formatted}")
         else:
-
             lines.append(f"🟢 {site} — OK")
-        else:
-            down_since = data.get("down_since") if data else None
-            if down_since:
-                try:
-                    ts = datetime.fromisoformat(down_since)
-                    formatted = ts.strftime("%Y-%m-%d (%H:%M)")
-                except Exception:
-                    formatted = down_since
-                lines.append(f"🔴 {site} — DOWN since {formatted}")
-            else:
-                lines.append(f"🔴 {site} — DOWN")
+
     update.message.reply_text("\n".join(lines), disable_web_page_preview=True)
 
 @with_typing
