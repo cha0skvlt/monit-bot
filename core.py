@@ -8,11 +8,11 @@ from dotenv import load_dotenv
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
-SITES_FILE = "/app/sites.txt"
-STATUS_FILE = "/app/status.json"
-LOG_FILE = "/app/logs/monitor.log"
+SITES_FILE = os.getenv("SITES_FILE", "/app/sites.txt")
+STATUS_FILE = os.getenv("STATUS_FILE", "/app/status.json")
+LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
 
-logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(message)s')
+logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(message)s")
 
 def log_event(data: dict):
     """Append structured JSON event to log file."""
@@ -118,7 +118,7 @@ def check_ssl():
                 s.settimeout(5)
                 s.connect((hostname, 443))
                 cert = s.getpeercert()
-                expires = datetime.datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
+                expires = datetime.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
                 days_left = (expires - datetime.datetime.utcnow()).days
                 status_icon = "⚠️" if days_left <= 7 else "✅"
                 results.append(f"{status_icon} {hostname} — {days_left} days")
