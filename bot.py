@@ -19,15 +19,17 @@ def with_typing(func):
 def cmd_status(update: Update, ctx: CallbackContext):
     check_sites()
     status = load_status()
+    sites = load_sites()
     lines = ["🌐 Site status:"]
-    for site, data in status.items():
+    for site in sites:
+        data = status.get(site, {"down_since": None})
         if data["down_since"]:
             try:
                 ts = datetime.fromisoformat(data["down_since"])
                 date_str = ts.strftime("%Y-%m-%d")
                 time_str = ts.strftime("%H:%M")
                 formatted = f"{date_str} ({time_str})"
-            except:
+            except Exception:
                 formatted = data["down_since"]
             lines.append(f"🔴 {site} — DOWN since {formatted}")
         else:

@@ -16,6 +16,8 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 - 💾 **Durable State** – URLs, status and logs are kept on disk (`sites.txt`, `status.json`, `monitor.log`). Paths can be customized via the `SITES_FILE`, `STATUS_FILE` and `LOG_FILE` variables.
 - 📄 **Structured Logging** – events are written in JSON so they can be easily processed by Grafana Loki, ELK or other tools.
 - 📴 **Graceful Startup** – the bot skips checks when no sites are configured.
+- 📈 **Instant Status Updates** – the `/status` command reflects additions and removals immediately.
+
 
 
 
