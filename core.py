@@ -8,11 +8,11 @@ from dotenv import load_dotenv
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
-SITES_FILE = "/app/sites.txt"
-STATUS_FILE = "/app/status.json"
-LOG_FILE = "/app/logs/monitor.log"
+SITES_FILE = os.getenv("SITES_FILE", "/app/sites.txt")
+STATUS_FILE = os.getenv("STATUS_FILE", "/app/status.json")
+LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
 
-logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(message)s')
+logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(message)s")
 
 def log_event(data: dict):
     """Append structured JSON event to log file."""
@@ -65,6 +65,8 @@ def save_status(data):
 
 def check_sites():
     sites = load_sites()
+    if not sites:
+        return
     status = load_status()
     now = datetime.datetime.utcnow()
 
@@ -76,7 +78,10 @@ def check_sites():
             return site, None
 
     with ThreadPoolExecutor(max_workers=min(10, len(sites))) as executor:
-        results = list(executor.map(fetch, sites))
+        try:
+            results = list(executor.map(fetch, sites))
+        except RuntimeError:
+            return
 
     for site, code in results:
         if code == 200:
@@ -101,9 +106,15 @@ def check_sites():
                         "duration_min": minutes
                     })
                     if hours:
-                        send_alert(f"❌ {site} is down for {hours}h {mins}m", disable_web_page_preview=True)
+                        send_alert(
+                            f"❌ {site} is down for {hours}h {mins}m",
+                            disable_web_page_preview=True,
+                        )
                     else:
-                        send_alert(f"❌ {site} is down for {mins}m", disable_web_page_preview=True)
+                        send_alert(
+                            f"❌ {site} is down for {mins}m",
+                            disable_web_page_preview=True,
+                        )
 
     save_status(status)
 
@@ -118,11 +129,18 @@ def check_ssl():
                 s.settimeout(5)
                 s.connect((hostname, 443))
                 cert = s.getpeercert()
-                expires = datetime.datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
+                expires = datetime.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
                 days_left = (expires - datetime.datetime.utcnow()).days
                 status_icon = "⚠️" if days_left <= 7 else "✅"
                 results.append(f"{status_icon} {hostname} — {days_left} days")
-                log_event({"type": "ssl_check", "site": hostname, "status": "valid", "days_left": days_left})
+                log_event(
+                    {
+                        "type": "ssl_check",
+                        "site": hostname,
+                        "status": "valid",
+                        "days_left": days_left,
+                    }
+                )
         except:
             results.append(f"❌ {hostname}: SSL certificate not available")
             log_event({"type": "ssl_check", "site": hostname, "status": "error"})
@@ -140,4 +158,7 @@ def daily_ssl_loop():
         result = check_ssl()
         alerts = [line for line in result.splitlines() if line.startswith("⚠️")]
         if alerts:
-            send_alert("⚠️ Sites with expiring SSL certificates:\n" + "\n".join(alerts), disable_web_page_preview=True)
+            send_alert(
+                "⚠️ Sites with expiring SSL certificates:\n" + "\n".join(alerts),
+                disable_web_page_preview=True,
+            )
