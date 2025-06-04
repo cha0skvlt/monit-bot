@@ -16,31 +16,17 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 - 💾 **Durable State** – URLs, status and logs are kept on disk (`sites.txt`, `status.json`, `monitor.log`). Suitable for mounting as Docker volumes.
 - 📄 **Structured Logging** – events are written in JSON so they can be easily processed by Grafana Loki, ELK or other tools.
 
-- 🌍 **Uptime Monitoring**  
-  Checks each site every minute in parallel (HTTP status 200)
-  Alerts: after 5 min of downtime, then hourly
 
-- 🔐 **SSL Certificate Lifetime**  
-  Daily auto-check at 06:00 UTC  (09:00 Moskow)
-  Alerts: if cert expires in ≤ 7 days
 
-- 📡 **Telegram Bot Interface**  
-  - `/status` — current site states  
-  - `/ssl` — manual SSL check  
-  - `/list` — show monitored URLs  
-  - `/add URL` — add new site  
-  - `/remove URL` — remove site  
-  - `/help` — command summary
-
-- 💾 **Stateful & Durable**  
-  - Persistent files: `sites.txt`, `status.json`, `monitor.log`  
-  - Autostart: Docker `restart: always`
-
-- 📄 **Structured Logging**  
-  - Logs in JSON format for external analysis  
-  - Compatible with **Grafana Loki**, ELK, or custom scripts
 
 ## Setup
+
+
+## Setup
+
+1. Clone this repository.
+2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
+3. Build and start the container:
 
 1. Clone this repository.
 2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
@@ -52,10 +38,12 @@ docker compose up --build -d
 
 The compose file mounts the data files and restarts the bot automatically.
 
+
 ## 📚 Документация на русском
 
 Более подробное руководство по настройке и работе проекта находится в файле
 [`docs/guide_ru.md`](docs/guide_ru.md).
+
 
 ### Running tests
 
