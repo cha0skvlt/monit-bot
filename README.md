@@ -17,6 +17,7 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 - 📄 **Structured Logging** – events are written in JSON so they can be easily processed by Grafana Loki, ELK or other tools.
 - 📴 **Graceful Startup** – the bot skips checks when no sites are configured.
 - 📈 **Instant Status Updates** – the `/status` command reflects additions and removals immediately.
+- ✅ **Strict HTTP 200 check** – a site is marked OK only when it returns HTTP 200.
 
 
 
