@@ -1,8 +1,6 @@
-# 🛡️ Web Monitor Telegram Bot  
-## @cha0skvlt
+# 🛡️ Web Monitor Telegram Bot
 
-Lightweight, production-ready **monitoring bot in Docker**  
-Tracks **site availability** and **SSL lifetime**, sends **Telegram alerts**, and logs to file for **Grafana/ELK** dashboards.
+A minimal yet production-ready bot that checks websites for uptime and SSL certificate expiration. Alerts are delivered to Telegram and all events are stored in structured JSON logs. The bot is designed to run in Docker with persistent state.
 
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)
@@ -10,48 +8,36 @@ Tracks **site availability** and **SSL lifetime**, sends **Telegram alerts**, an
 
 ---
 
-## ⚙️ Features
+## Features
 
-- 🌍 **Uptime Monitoring**  
-  Checks each site every minute (HTTP status 200)  
-  Alerts: after 5 min of downtime, then hourly
-
-- 🔐 **SSL Certificate Lifetime**  
-  Daily auto-check at 06:00 UTC  (09:00 Moskow)
-  Alerts: if cert expires in ≤ 7 days
-
-- 📡 **Telegram Bot Interface**  
-  - `/status` — current site states  
-  - `/ssl` — manual SSL check  
-  - `/list` — show monitored URLs  
-  - `/add URL` — add new site  
-  - `/remove URL` — remove site  
-  - `/help` — command summary
-
-- 💾 **Stateful & Durable**  
-  - Persistent files: `sites.txt`, `status.json`, `monitor.log`  
-  - Autostart: Docker `restart: always`
-
-- 📄 **Structured Logging**  
-  - Logs in JSON format for external analysis  
-  - Compatible with **Grafana Loki**, ELK, or custom scripts
+- 🌍 **Uptime Monitoring** – each site is checked every minute in parallel. If a site stays down for 5 minutes you get a notification and then hourly reminders until it recovers.
+- 🔐 **SSL Certificate Lifetime** – certificates are verified daily at 06:00 UTC and on demand. Alerts are sent if any certificate expires in seven days or less.
+- 📡 **Telegram Commands** – manage the monitored list directly in chat: `/start`, `/status`, `/ssl`, `/list`, `/add URL`, `/remove URL` and `/help`.
+- 💾 **Durable State** – URLs, status and logs are kept on disk (`sites.txt`, `status.json`, `monitor.log`). Suitable for mounting as Docker volumes.
+- 📄 **Structured Logging** – events are written in JSON so they can be easily processed by Grafana Loki, ELK or other tools.
 
 ---
 
-## 🚀 Quickstart
+## Setup
+
+1. Clone this repository.
+2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
+3. Build and start the container:
 
 ```bash
-git clone https://github.com/YOURUSER/telegram-site-monitor.git
-cd telegram-site-monitor
-
-cp .env.example .env  # insert your BOT_TOKEN and CHAT_ID
-
 docker compose up --build -d
 ```
+
+The compose file mounts the data files and restarts the bot automatically.
+
+## 📚 Документация на русском
+
+Более подробное руководство по настройке и работе проекта находится в файле
+[`docs/guide_ru.md`](docs/guide_ru.md).
 
 ### Running tests
 
 ```bash
 pip install -r requirements.txt
-pytest
+pytest -q
 ```

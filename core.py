@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-import os, json, ssl, socket, datetime, requests, logging
+import os, json, ssl, socket, datetime, requests, logging, time
+from telegram import Bot
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
@@ -17,15 +19,24 @@ def log_event(data: dict):
     data["timestamp"] = datetime.datetime.utcnow().isoformat() + "Z"
     logging.info(json.dumps(data))
 
+_bot = None
+
+
+def _get_bot():
+    global _bot
+    if _bot is None:
+        _bot = Bot(BOT_TOKEN)
+    return _bot
+
+
 def send_alert(msg, disable_web_page_preview=True):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     try:
-        requests.post(url, data={
-            "chat_id": CHAT_ID,
-            "text": msg,
-            "disable_web_page_preview": disable_web_page_preview
-        }, timeout=5)
-    except:
+        _get_bot().send_message(
+            chat_id=CHAT_ID,
+            text=msg,
+            disable_web_page_preview=disable_web_page_preview,
+        )
+    except Exception:
         pass
 
 def load_sites():
@@ -57,17 +68,23 @@ def check_sites():
     status = load_status()
     now = datetime.datetime.utcnow()
 
-    for site in sites:
+    def fetch(site):
         try:
             r = requests.get(site, timeout=10)
-            if r.status_code == 200:
-                log_event({"type": "site_check", "site": site, "status": "up", "available": 1})
-                if site in status and status[site]["down_since"]:
-                    send_alert(f"✅ {site} is back online", disable_web_page_preview=True)
-                status[site] = {"down_since": None}
-            else:
-                raise Exception(f"Status {r.status_code}")
-        except:
+            return site, r.status_code
+        except Exception:
+            return site, None
+
+    with ThreadPoolExecutor(max_workers=min(10, len(sites))) as executor:
+        results = list(executor.map(fetch, sites))
+
+    for site, code in results:
+        if code == 200:
+            log_event({"type": "site_check", "site": site, "status": "up", "available": 1})
+            if site in status and status[site]["down_since"]:
+                send_alert(f"✅ {site} is back online", disable_web_page_preview=True)
+            status[site] = {"down_since": None}
+        else:
             if site not in status or status[site]["down_since"] is None:
                 status[site] = {"down_since": now.isoformat()}
             else:
