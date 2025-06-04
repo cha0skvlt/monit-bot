@@ -30,8 +30,22 @@ def cmd_status(update: Update, ctx: CallbackContext):
     sites = load_sites()
     lines = ["🌐 Site status:"]
     for site in sites:
+
         data = status.get(site)
         if data and data.get("down_since") is None:
+
+        data = status.get(site, {"down_since": None})
+        if data["down_since"]:
+            try:
+                ts = datetime.fromisoformat(data["down_since"])
+                date_str = ts.strftime("%Y-%m-%d")
+                time_str = ts.strftime("%H:%M")
+                formatted = f"{date_str} ({time_str})"
+            except Exception:
+                formatted = data["down_since"]
+            lines.append(f"🔴 {site} — DOWN since {formatted}")
+        else:
+
             lines.append(f"🟢 {site} — OK")
         else:
             down_since = data.get("down_since") if data else None

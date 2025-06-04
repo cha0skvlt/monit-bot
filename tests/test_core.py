@@ -98,11 +98,15 @@ def test_check_sites_recovery(monkeypatch):
 def test_check_sites_no_sites(monkeypatch):
     monkeypatch.setattr(core, "load_sites", lambda: [])
     monkeypatch.setattr(core, "load_status", lambda: {})
+
     monkeypatch.setattr(
         core,
         "save_status",
         lambda d: (_ for _ in ()).throw(AssertionError("should not save")),
     )
+
+    monkeypatch.setattr(core, "save_status", lambda d: (_ for _ in ()).throw(AssertionError("should not save")))
+
     core.check_sites()  # should not raise
 
 

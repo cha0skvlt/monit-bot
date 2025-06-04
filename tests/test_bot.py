@@ -185,6 +185,15 @@ def test_status_shows_down(monkeypatch):
     assert "DOWN" in text and "x" in text
 
 
+def test_status_ignores_removed(monkeypatch):
+    monkeypatch.setattr(bot, "check_sites", lambda: None)
+    monkeypatch.setattr(bot, "load_sites", lambda: ["b"])
+    monkeypatch.setattr(bot, "load_status", lambda: {"a": {"down_since": None}, "b": {"down_since": None}})
+    upd = _call_cmd(bot.cmd_status)
+    text = upd.message.texts[0]
+    assert "b" in text and "a —" not in text
+
+
 def test_cmd_ssl_check(monkeypatch):
     monkeypatch.setattr(bot, "check_ssl", lambda: "SSL")
     upd = _call_cmd(bot.cmd_ssl_check)
