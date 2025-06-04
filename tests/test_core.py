@@ -94,3 +94,37 @@ def test_check_sites_recovery(monkeypatch):
     assert alerts and alerts[0].startswith("✅")
     assert saved[site]["down_since"] is None
 
+
+def test_env_override_files(tmp_path, monkeypatch):
+    monkeypatch.setenv("SITES_FILE", str(tmp_path / "s.txt"))
+    monkeypatch.setenv("STATUS_FILE", str(tmp_path / "st.json"))
+    monkeypatch.setenv("LOG_FILE", str(tmp_path / "log.log"))
+    import importlib
+    import core as core_mod
+    importlib.reload(core_mod)
+    try:
+        assert core_mod.SITES_FILE == str(tmp_path / "s.txt")
+        assert core_mod.STATUS_FILE == str(tmp_path / "st.json")
+        assert core_mod.LOG_FILE == str(tmp_path / "log.log")
+    finally:
+        monkeypatch.delenv("SITES_FILE", raising=False)
+        monkeypatch.delenv("STATUS_FILE", raising=False)
+        monkeypatch.delenv("LOG_FILE", raising=False)
+        importlib.reload(core_mod)
+
+
+def test_env_defaults(monkeypatch):
+    import importlib
+    import core as core_mod
+    monkeypatch.delenv("SITES_FILE", raising=False)
+    monkeypatch.delenv("STATUS_FILE", raising=False)
+    monkeypatch.delenv("LOG_FILE", raising=False)
+    importlib.reload(core_mod)
+    try:
+        assert core_mod.SITES_FILE == "/app/sites.txt"
+        assert core_mod.STATUS_FILE == "/app/status.json"
+        assert core_mod.LOG_FILE == "/app/logs/monitor.log"
+    finally:
+        importlib.reload(core_mod)
+
+

@@ -13,23 +13,17 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 - 🌍 **Uptime Monitoring** – each site is checked every minute in parallel. If a site stays down for 5 minutes you get a notification and then hourly reminders until it recovers.
 - 🔐 **SSL Certificate Lifetime** – certificates are verified daily at 06:00 UTC and on demand. Alerts are sent if any certificate expires in seven days or less.
 - 📡 **Telegram Commands** – manage the monitored list directly in chat: `/status`, `/ssl`, `/list`, `/add URL`, `/remove URL` and `/help`.
-- 💾 **Durable State** – URLs, status and logs are kept on disk (`sites.txt`, `status.json`, `monitor.log`). Suitable for mounting as Docker volumes.
+- 💾 **Durable State** – URLs, status and logs are kept on disk (`sites.txt`, `status.json`, `monitor.log`). Paths can be customized via the `SITES_FILE`, `STATUS_FILE` and `LOG_FILE` variables.
 - 📄 **Structured Logging** – events are written in JSON so they can be easily processed by Grafana Loki, ELK or other tools.
 
 
 
-
-## Setup
-
-
 ## Setup
 
 1. Clone this repository.
 2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
-3. Build and start the container:
-
-1. Clone this repository.
-2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
+   Optional variables `SITES_FILE`, `STATUS_FILE` and `LOG_FILE` allow
+   changing paths to the data files.
 3. Build and start the container:
 
 ```bash
