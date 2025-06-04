@@ -170,10 +170,10 @@ def test_cmd_ssl_check(monkeypatch):
 def test_cmd_help():
     upd = _call_cmd(bot.cmd_help)
     assert "Commands" in upd.message.texts[0]
-
-
+    
 def test_cmd_start():
     upd = _call_cmd(bot.cmd_start)
     text = upd.message.texts[0]
     assert "@cha0skvlt" in text
     assert "/status" in text
+

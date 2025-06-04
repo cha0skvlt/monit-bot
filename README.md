@@ -12,11 +12,33 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 
 - 🌍 **Uptime Monitoring** – each site is checked every minute in parallel. If a site stays down for 5 minutes you get a notification and then hourly reminders until it recovers.
 - 🔐 **SSL Certificate Lifetime** – certificates are verified daily at 06:00 UTC and on demand. Alerts are sent if any certificate expires in seven days or less.
-- 📡 **Telegram Commands** – manage the monitored list directly in chat: `/start`, `/status`, `/ssl`, `/list`, `/add URL`, `/remove URL` and `/help`.
+- 📡 **Telegram Commands** – manage the monitored list directly in chat: `/status`, `/ssl`, `/list`, `/add URL`, `/remove URL` and `/help`.
 - 💾 **Durable State** – URLs, status and logs are kept on disk (`sites.txt`, `status.json`, `monitor.log`). Suitable for mounting as Docker volumes.
 - 📄 **Structured Logging** – events are written in JSON so they can be easily processed by Grafana Loki, ELK or other tools.
 
----
+- 🌍 **Uptime Monitoring**  
+  Checks each site every minute in parallel (HTTP status 200)
+  Alerts: after 5 min of downtime, then hourly
+
+- 🔐 **SSL Certificate Lifetime**  
+  Daily auto-check at 06:00 UTC  (09:00 Moskow)
+  Alerts: if cert expires in ≤ 7 days
+
+- 📡 **Telegram Bot Interface**  
+  - `/status` — current site states  
+  - `/ssl` — manual SSL check  
+  - `/list` — show monitored URLs  
+  - `/add URL` — add new site  
+  - `/remove URL` — remove site  
+  - `/help` — command summary
+
+- 💾 **Stateful & Durable**  
+  - Persistent files: `sites.txt`, `status.json`, `monitor.log`  
+  - Autostart: Docker `restart: always`
+
+- 📄 **Structured Logging**  
+  - Logs in JSON format for external analysis  
+  - Compatible with **Grafana Loki**, ELK, or custom scripts
 
 ## Setup
 
