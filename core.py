@@ -65,6 +65,8 @@ def save_status(data):
 
 def check_sites():
     sites = load_sites()
+    if not sites:
+        return
     status = load_status()
     now = datetime.datetime.utcnow()
 
@@ -76,7 +78,10 @@ def check_sites():
             return site, None
 
     with ThreadPoolExecutor(max_workers=min(10, len(sites))) as executor:
-        results = list(executor.map(fetch, sites))
+        try:
+            results = list(executor.map(fetch, sites))
+        except RuntimeError:
+            return
 
     for site, code in results:
         if code == 200:
@@ -101,9 +106,15 @@ def check_sites():
                         "duration_min": minutes
                     })
                     if hours:
-                        send_alert(f"❌ {site} is down for {hours}h {mins}m", disable_web_page_preview=True)
+                        send_alert(
+                            f"❌ {site} is down for {hours}h {mins}m",
+                            disable_web_page_preview=True,
+                        )
                     else:
-                        send_alert(f"❌ {site} is down for {mins}m", disable_web_page_preview=True)
+                        send_alert(
+                            f"❌ {site} is down for {mins}m",
+                            disable_web_page_preview=True,
+                        )
 
     save_status(status)
 
@@ -122,7 +133,14 @@ def check_ssl():
                 days_left = (expires - datetime.datetime.utcnow()).days
                 status_icon = "⚠️" if days_left <= 7 else "✅"
                 results.append(f"{status_icon} {hostname} — {days_left} days")
-                log_event({"type": "ssl_check", "site": hostname, "status": "valid", "days_left": days_left})
+                log_event(
+                    {
+                        "type": "ssl_check",
+                        "site": hostname,
+                        "status": "valid",
+                        "days_left": days_left,
+                    }
+                )
         except:
             results.append(f"❌ {hostname}: SSL certificate not available")
             log_event({"type": "ssl_check", "site": hostname, "status": "error"})
@@ -140,4 +158,7 @@ def daily_ssl_loop():
         result = check_ssl()
         alerts = [line for line in result.splitlines() if line.startswith("⚠️")]
         if alerts:
-            send_alert("⚠️ Sites with expiring SSL certificates:\n" + "\n".join(alerts), disable_web_page_preview=True)
+            send_alert(
+                "⚠️ Sites with expiring SSL certificates:\n" + "\n".join(alerts),
+                disable_web_page_preview=True,
+            )
