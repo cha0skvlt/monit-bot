@@ -45,3 +45,52 @@ def test_check_sites_parallel(tmp_path, monkeypatch):
     status = core.load_status()
     assert status["https://ok.com"]["down_since"] is None
     assert status["https://bad.com"]["down_since"] is not None
+
+def test_check_sites_alert_threshold(monkeypatch):
+    site = "https://bad.com"
+    monkeypatch.setattr(core, "load_sites", lambda: [site])
+    fixed_now = core.datetime.datetime(2024, 1, 1, 0, 10, 0)
+    class FixedDT(core.datetime.datetime):
+        @classmethod
+        def utcnow(cls):
+            return fixed_now
+    monkeypatch.setattr(core.datetime, "datetime", FixedDT)
+    status = {site: {"down_since": (fixed_now - core.datetime.timedelta(minutes=5)).isoformat()}}
+    monkeypatch.setattr(core, "load_status", lambda: status.copy())
+    saved = {}
+    monkeypatch.setattr(core, "save_status", lambda d: saved.update(d))
+    monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
+    alerts = []
+    monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
+    def fake_get(url, timeout=10):
+        raise requests.RequestException
+    monkeypatch.setattr(core.requests, "get", fake_get)
+    core.check_sites()
+    assert alerts and "down for 5m" in alerts[0]
+    assert saved[site]["down_since"] == status[site]["down_since"]
+
+
+def test_check_sites_recovery(monkeypatch):
+    site = "https://ok.com"
+    monkeypatch.setattr(core, "load_sites", lambda: [site])
+    fixed_now = core.datetime.datetime(2024, 1, 1, 0, 20, 0)
+    class FixedDT(core.datetime.datetime):
+        @classmethod
+        def utcnow(cls):
+            return fixed_now
+    monkeypatch.setattr(core.datetime, "datetime", FixedDT)
+    status = {site: {"down_since": (fixed_now - core.datetime.timedelta(minutes=10)).isoformat()}}
+    monkeypatch.setattr(core, "load_status", lambda: status.copy())
+    saved = {}
+    monkeypatch.setattr(core, "save_status", lambda d: saved.update(d))
+    monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
+    alerts = []
+    monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
+    class Resp:
+        def __init__(self, code):
+            self.status_code = code
+    monkeypatch.setattr(core.requests, "get", lambda url, timeout=10: Resp(200))
+    core.check_sites()
+    assert alerts and alerts[0].startswith("✅")
+    assert saved[site]["down_since"] is None
+
