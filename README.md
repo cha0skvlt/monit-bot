@@ -13,7 +13,7 @@ Tracks **site availability** and **SSL lifetime**, sends **Telegram alerts**, an
 ## ⚙️ Features
 
 - 🌍 **Uptime Monitoring**  
-  Checks each site every minute (HTTP status 200)  
+  Checks each site every minute in parallel (HTTP status 200)
   Alerts: after 5 min of downtime, then hourly
 
 - 🔐 **SSL Certificate Lifetime**  
