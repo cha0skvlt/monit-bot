@@ -13,7 +13,9 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 - 🌍 **Uptime Monitoring** – each site is checked every minute in parallel. If a site stays down for 5 minutes you get a notification and then hourly reminders until it recovers.
 - 🔐 **SSL Certificate Lifetime** – certificates are verified daily at 06:00 UTC and on demand. Alerts are sent if any certificate expires in seven days or less.
 - 📡 **Telegram Commands** – manage the monitored list directly in chat: `/status`, `/ssl`, `/list`, `/add URL`, `/remove URL` and `/start` for help.
-- 💾 **Durable State** – URLs, status and logs are kept on disk (`sites.txt`, `status.json`, `monitor.log`). Paths can be customized via the `SITES_FILE`, `STATUS_FILE` and `LOG_FILE` variables.
+- 💾 **Durable State** – URLs, status and logs on disk (`sites.txt`, `status.json`, `monitor.log`).
+  Paths can be changed via `SITES_FILE`, `STATUS_FILE` and `LOG_FILE`.
+- ⏱️ **Request Timeout** – HTTP requests use `REQUEST_TIMEOUT` seconds.
 - 📄 **Structured Logging** – events are written in JSON so they can be easily processed by Grafana Loki, ELK or other tools.
 - 📴 **Graceful Startup** – the bot skips checks when no sites are configured.
 - 📈 **Instant Status Updates** – the `/status` command reflects additions and removals immediately.
@@ -31,7 +33,7 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
     ```
 
     The container will create `status.json` automatically if it doesn't exist. Optional variables
-    `SITES_FILE`, `STATUS_FILE` and `LOG_FILE` allow changing paths to the data files.
+    `SITES_FILE`, `STATUS_FILE`, `LOG_FILE` and `REQUEST_TIMEOUT` tune paths and request timeout.
 
 
 ## 📚 Документация на русском

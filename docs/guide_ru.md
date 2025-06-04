@@ -37,8 +37,9 @@
    ```bash
    docker compose up --build -d
    ```
-   Контейнер автоматически создаст `status.json`, если его нет. При желании можно
-   изменить пути к файлам через переменные `SITES_FILE`, `STATUS_FILE` и `LOG_FILE`.
+    Контейнер автоматически создаст `status.json`, если его нет. При желании можно
+    изменить пути к файлам через переменные `SITES_FILE`, `STATUS_FILE`, `LOG_FILE`
+    и `REQUEST_TIMEOUT`.
 
 <a name="python-run"></a>
 ## 3. Запуск напрямую через Python
@@ -60,6 +61,7 @@ python bot.py
 - `SITES_FILE` – путь к списку сайтов (по умолчанию `/app/sites.txt`).
 - `STATUS_FILE` – файл статуса сайтов (по умолчанию `/app/status.json`).
 - `LOG_FILE` – файл журнала событий (по умолчанию `/app/logs/monitor.log`).
+- `REQUEST_TIMEOUT` – таймаут HTTP-запросов в секундах (по умолчанию `10`).
 
 Все переменные загружаются через `dotenv`. `BOT_TOKEN` и `CHAT_ID` обязательны,
 остальные имеют значения по умолчанию.

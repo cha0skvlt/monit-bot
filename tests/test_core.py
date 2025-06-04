@@ -134,12 +134,38 @@ def test_env_defaults(monkeypatch):
     monkeypatch.delenv("SITES_FILE", raising=False)
     monkeypatch.delenv("STATUS_FILE", raising=False)
     monkeypatch.delenv("LOG_FILE", raising=False)
+    monkeypatch.delenv("REQUEST_TIMEOUT", raising=False)
     importlib.reload(core_mod)
     try:
         assert core_mod.SITES_FILE == "/app/sites.txt"
         assert core_mod.STATUS_FILE == "/app/status.json"
         assert core_mod.LOG_FILE == "/app/logs/monitor.log"
+        assert core_mod.REQUEST_TIMEOUT == 10
     finally:
         importlib.reload(core_mod)
+
+
+def test_request_timeout_usage(tmp_path, monkeypatch):
+    sites_file = tmp_path / "sites.txt"
+    status_file = tmp_path / "status.json"
+    monkeypatch.setattr(core, "SITES_FILE", str(sites_file))
+    monkeypatch.setattr(core, "STATUS_FILE", str(status_file))
+    monkeypatch.setattr(core, "send_alert", lambda *a, **k: None)
+    monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
+
+    core.save_sites(["https://ok.com"])
+
+    called = {}
+
+    def fake_get(url, timeout=None):
+        called["timeout"] = timeout
+        class Resp:
+            status_code = 200
+        return Resp()
+
+    monkeypatch.setattr(core.requests, "get", fake_get)
+    monkeypatch.setattr(core, "REQUEST_TIMEOUT", 5)
+    core.check_sites()
+    assert called.get("timeout") == 5
 
 

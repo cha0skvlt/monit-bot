@@ -11,6 +11,7 @@ CHAT_ID = os.getenv("CHAT_ID")
 SITES_FILE = os.getenv("SITES_FILE", "/app/sites.txt")
 STATUS_FILE = os.getenv("STATUS_FILE", "/app/status.json")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
+REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))
 
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(message)s")
 
@@ -72,7 +73,7 @@ def check_sites():
 
     def fetch(site):
         try:
-            r = requests.get(site, timeout=10)
+            r = requests.get(site, timeout=REQUEST_TIMEOUT)
             return site, r.status_code
         except Exception:
             return site, None
