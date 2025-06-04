@@ -6,6 +6,6 @@ COPY . /app
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN test -f /app/status.json || echo '{}' > /app/status.json
+RUN chmod +x /app/start.sh
 
-CMD ["python", "/app/bot.py"]
+CMD ["/app/start.sh"]
