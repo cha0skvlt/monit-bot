@@ -156,9 +156,19 @@ def test_cmd_remove(monkeypatch):
 
 def test_cmd_status(monkeypatch):
     monkeypatch.setattr(bot, "check_sites", lambda: None)
+    monkeypatch.setattr(bot, "load_sites", lambda: ["a"])
     monkeypatch.setattr(bot, "load_status", lambda: {"a": {"down_since": None}})
     upd = _call_cmd(bot.cmd_status)
     assert "a" in upd.message.texts[0]
+
+
+def test_status_ignores_removed(monkeypatch):
+    monkeypatch.setattr(bot, "check_sites", lambda: None)
+    monkeypatch.setattr(bot, "load_sites", lambda: ["b"])
+    monkeypatch.setattr(bot, "load_status", lambda: {"a": {"down_since": None}, "b": {"down_since": None}})
+    upd = _call_cmd(bot.cmd_status)
+    text = upd.message.texts[0]
+    assert "b" in text and "a —" not in text
 
 
 def test_cmd_ssl_check(monkeypatch):
