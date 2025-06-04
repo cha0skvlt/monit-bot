@@ -78,7 +78,10 @@ def check_sites():
             return site, None
 
     with ThreadPoolExecutor(max_workers=min(10, len(sites))) as executor:
-        results = list(executor.map(fetch, sites))
+        try:
+            results = list(executor.map(fetch, sites))
+        except RuntimeError:
+            return
 
     for site, code in results:
         if code == 200:
