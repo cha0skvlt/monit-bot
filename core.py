@@ -95,8 +95,8 @@ def check_sites():
                 status[site] = {"down_since": now.isoformat()}
             else:
                 delta = now - datetime.datetime.fromisoformat(status[site]["down_since"])
-                minutes = int(delta.total_seconds() // 60)
-                if minutes == 5 or (minutes > 5 and minutes % 60 == 0):
+                minutes = round(delta.total_seconds() / 60)
+                if minutes >= 5 and (minutes - 5) % 60 == 0:
                     hours = minutes // 60
                     mins = minutes % 60
                     log_event({
