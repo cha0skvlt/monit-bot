@@ -169,3 +169,69 @@ def test_request_timeout_usage(tmp_path, monkeypatch):
     assert called.get("timeout") == 5
 
 
+
+def test_alert_after_adding_bad_site(tmp_path, monkeypatch):
+    site = "https://bad.com"
+    sites_file = tmp_path / "sites.txt"
+    status_file = tmp_path / "status.json"
+    monkeypatch.setattr(core, "SITES_FILE", str(sites_file))
+    monkeypatch.setattr(core, "STATUS_FILE", str(status_file))
+    monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
+
+    alerts = []
+    monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
+
+    def fake_get(url, timeout=10):
+        raise requests.RequestException
+    monkeypatch.setattr(core.requests, "get", fake_get)
+
+    base = core.datetime.datetime(2024, 1, 1, 0, 0, 0)
+    class FixedDT(core.datetime.datetime):
+        @classmethod
+        def utcnow(cls):
+            return cls.current
+    FixedDT.current = base
+    monkeypatch.setattr(core.datetime, "datetime", FixedDT)
+
+    core.save_sites([site])
+    core.check_sites()
+    assert not alerts
+
+    FixedDT.current = base + core.datetime.timedelta(minutes=5)
+    core.check_sites()
+    assert alerts and "down for 5m" in alerts[0]
+
+
+def test_hourly_reminder_after_downtime(tmp_path, monkeypatch):
+    site = "https://bad.com"
+    sites_file = tmp_path / "sites.txt"
+    status_file = tmp_path / "status.json"
+    monkeypatch.setattr(core, "SITES_FILE", str(sites_file))
+    monkeypatch.setattr(core, "STATUS_FILE", str(status_file))
+    monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
+
+    alerts = []
+    monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
+
+    def fake_get(url, timeout=10):
+        raise requests.RequestException
+    monkeypatch.setattr(core.requests, "get", fake_get)
+
+    base = core.datetime.datetime(2024, 1, 1, 0, 0, 0)
+    class FixedDT(core.datetime.datetime):
+        @classmethod
+        def utcnow(cls):
+            return cls.current
+    FixedDT.current = base
+    monkeypatch.setattr(core.datetime, "datetime", FixedDT)
+
+    core.save_sites([site])
+    core.check_sites()
+
+    FixedDT.current = base + core.datetime.timedelta(minutes=5)
+    core.check_sites()
+
+    FixedDT.current = base + core.datetime.timedelta(minutes=65)
+    core.check_sites()
+
+    assert any("down for 1h 5m" in a for a in alerts)
