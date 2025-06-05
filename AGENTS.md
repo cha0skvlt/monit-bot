@@ -22,3 +22,21 @@ Follow these rules when modifying files:
 
 ## Commits
 - Keep commit messages concise: a short summary line and an optional bullet list of changes.
+- 
+# DEBUG: Проверка отправки уведомлений Telegram
+# 1. В send_alert() игнорируются исключения — нужно логгировать:
+#    except Exception as e:
+#        print(f"[send_alert error] {e}")
+#
+# 2. Проверка, что CHAT_ID установлен:
+#    if not CHAT_ID:
+#        print("[send_alert] CHAT_ID not set")
+#        return
+#
+# 3. Проверить переменные в .env:
+#    CHAT_ID=123456789
+#    BOT_TOKEN=...
+#
+# 4. Ручная проверка через:
+#    from telegram import Bot
+#    Bot(BOT_TOKEN).send_message(chat_id=CHAT_ID, text="test")
