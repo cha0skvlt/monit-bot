@@ -108,7 +108,7 @@ def cmd_start(update: Update, ctx: CallbackContext):
 
 🕘 SSL auto-check runs daily at 06:00 UTC.
 ⚠️ Alerts if any cert expires in ≤ 7 days.
-🚨 Site downtime alerts: first at 5 min, then hourly.
+🚨 Site downtime alerts: first at 3 min, then hourly.
 ➕ Sites are managed via Telegram.
 📄 Logs formatted for Grafana or external analysis.
 
@@ -123,10 +123,13 @@ def cmd_start(update: Update, ctx: CallbackContext):
 
 def background_loop():
     while True:
-        t = time.gmtime()
-        check_sites()
-        if t.tm_hour == 3 and t.tm_min == 0:
-            check_ssl()
+        try:
+            t = time.gmtime()
+            check_sites()
+            if t.tm_hour == 3 and t.tm_min == 0:
+                check_ssl()
+        except Exception as e:
+            print(f"[background_loop error] {e}")
         time.sleep(60)
 
 def start_bot():
