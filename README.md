@@ -29,6 +29,9 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 
 3. Run `./telegram_test.sh` to verify your credentials. The script reads `.env`
    automatically.
+
+3. Run `./telegram_test.sh` to verify your credentials.
+
 4. Build and start the container:
 
     ```bash

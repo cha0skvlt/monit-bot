@@ -1,4 +1,5 @@
 #!/bin/sh
+
 # Send a test message using BOT_TOKEN and CHAT_ID from .env or environment
 set -e
 
@@ -16,6 +17,11 @@ if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
         set +a
     fi
 fi
+
+
+# Send a test message using BOT_TOKEN and CHAT_ID from the environment
+set -e
+
 
 if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
     echo "BOT_TOKEN or CHAT_ID not set"
