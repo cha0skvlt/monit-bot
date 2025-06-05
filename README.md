@@ -10,7 +10,7 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 
 ## Features
 
-- 🌍 **Uptime Monitoring** – each site is checked every minute in parallel. If a site stays down for 5 minutes you get a notification and then hourly reminders until it recovers.
+ - 🌍 **Uptime Monitoring** – each site is checked every minute in parallel. After at least 3 minutes of downtime you get an alert and then hourly reminders until it recovers.
 - 🔐 **SSL Certificate Lifetime** – certificates are verified daily at 06:00 UTC and on demand. Alerts are sent if any certificate expires in seven days or less.
 - 📡 **Telegram Commands** – manage the monitored list directly in chat: `/status`, `/ssl`, `/list`, `/add URL`, `/remove URL` and `/start` for help.
 - 💾 **Durable State** – URLs, status and logs on disk (`sites.txt`, `status.json`, `monitor.log`).
@@ -48,3 +48,7 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 pip install -r requirements.txt
 pytest -q
 ```
+
+## Version
+
+Current release: **1.1**

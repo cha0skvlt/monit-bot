@@ -108,7 +108,7 @@ def cmd_start(update: Update, ctx: CallbackContext):
 
 🕘 SSL auto-check runs daily at 06:00 UTC.
 ⚠️ Alerts if any cert expires in ≤ 7 days.
-🚨 Site downtime alerts: first at 5 min, then hourly.
+🚨 Site downtime alerts: first at 3 min, then hourly.
 ➕ Sites are managed via Telegram.
 📄 Logs formatted for Grafana or external analysis.
 
