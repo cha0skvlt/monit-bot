@@ -21,7 +21,11 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
-DB_FILE = os.getenv("DB_FILE", "/app/db.sqlite")
+DB_FILE_ENV = os.getenv("DB_FILE", "/app/db.sqlite")
+db_path = Path(DB_FILE_ENV)
+if db_path.is_dir() or (not db_path.suffix and not db_path.exists()):
+    db_path /= "db.sqlite"
+DB_FILE = str(db_path)
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))
 
 LEGACY_SITES_FILE = Path("/app/sites.txt")
@@ -35,7 +39,8 @@ def init_db():
     """Create database and migrate data on first run."""
     if getattr(init_db, "done", False):
         return
-    os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
+    dir_name = os.path.dirname(DB_FILE) or "."
+    os.makedirs(dir_name, exist_ok=True)
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     cur.execute("CREATE TABLE IF NOT EXISTS sites (url TEXT PRIMARY KEY)")
@@ -129,6 +134,50 @@ def save_status(data):
         )
         conn.commit()
 
+def site_is_up(url: str) -> bool:
+    headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
+    try:
+        r = requests.head(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
+        if r.status_code == 200:
+            return True
+    except Exception:
+        pass
+    try:
+        r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
+        if r.status_code == 200:
+            return True
+    except Exception:
+        pass
+    parsed = urlparse(url)
+    host = parsed.hostname
+    if not host:
+        return False
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    path = parsed.path or "/"
+    try:
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except Exception:
+        return False
+    for family, socktype, proto, canonname, sockaddr in infos:
+        try:
+            with socket.create_connection(sockaddr, REQUEST_TIMEOUT) as conn:
+                if parsed.scheme == "https":
+                    ctx = ssl.create_default_context()
+                    with ctx.wrap_socket(conn, server_hostname=host) as s:
+                        req = f"HEAD {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
+                        s.sendall(req.encode())
+                        data = s.recv(12)
+                else:
+                    req = f"HEAD {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
+                    conn.sendall(req.encode())
+                    data = conn.recv(12)
+            if b"200" in data.split(b"\r\n")[0]:
+                return True
+        except Exception:
+            continue
+    return False
+
+
 def check_sites():
     sites = load_sites()
     if not sites:
@@ -137,11 +186,7 @@ def check_sites():
     now = datetime.datetime.utcnow()
 
     def fetch(site):
-        try:
-            r = requests.get(site, timeout=REQUEST_TIMEOUT)
-            return site, r.status_code
-        except Exception:
-            return site, None
+        return site, site_is_up(site)
 
     with ThreadPoolExecutor(max_workers=min(10, len(sites))) as executor:
         try:
@@ -149,8 +194,8 @@ def check_sites():
         except RuntimeError:
             return
 
-    for site, code in results:
-        if code == 200:
+    for site, ok in results:
+        if ok:
             log_event({"type": "site_check", "site": site, "status": "up", "available": 1})
             if site in status and status[site]["down_since"]:
                 send_alert(f"✅ {site} is back online", disable_web_page_preview=True)
