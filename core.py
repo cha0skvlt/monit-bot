@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, json, ssl, socket, datetime, requests, logging, time
+import os, json, ssl, socket, datetime, requests, logging, time, threading
 from telegram import Bot
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
@@ -21,13 +21,15 @@ def log_event(data: dict):
     logging.info(json.dumps(data))
 
 _bot = None
+_bot_lock = threading.Lock()
 
 
 def _get_bot():
     global _bot
-    if _bot is None:
-        _bot = Bot(BOT_TOKEN)
-    return _bot
+    with _bot_lock:
+        if _bot is None:
+            _bot = Bot(BOT_TOKEN)
+        return _bot
 
 
 def send_alert(msg, disable_web_page_preview=True):
