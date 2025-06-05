@@ -2,6 +2,7 @@
 
 Minimal Telegram bot that checks your sites every minute and warns about expiring SSL certificates.
 Runs in Docker, stores data in SQLite and logs in JSON.
+The bot keeps running because `updater.idle()` blocks the main thread.
 
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)

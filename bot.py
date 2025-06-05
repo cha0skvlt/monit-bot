@@ -145,6 +145,7 @@ def start_bot():
     dp.add_handler(CommandHandler("ssl", cmd_ssl_check))
     dp.add_handler(CommandHandler("start", cmd_start))
     updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     threading.Thread(target=background_loop, daemon=True).start()
