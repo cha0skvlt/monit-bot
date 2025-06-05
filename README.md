@@ -1,4 +1,4 @@
-# ⭐ Web Monitor Bot
+# 🤖 Web Monitor Bot
 
 Minimal Telegram bot that checks your sites every minute and warns about expiring SSL certificates.
 Runs in Docker, stores data in SQLite and logs in JSON.
@@ -13,17 +13,28 @@ Runs in Docker, stores data in SQLite and logs in JSON.
 
 - Uptime alerts after 3 minutes of downtime
 - Daily SSL certificate check
-- Manage URLs via `/status`, `/ssl`, `/list`, `/add`, `/remove`
+- Manage URLs via Telegram `/status`, `/ssl`, `/list`, `/add`, `/remove`
 - All data in a single SQLite file
 
 ## Quick start
 
-1. Copy `.env.example` to `.env` and set `BOT_TOKEN` and `CHAT_ID`.
-2. Run `./telegram_test.sh` to verify the credentials.
-3. `docker compose up --build -d`
+1. Clone this repository.
+2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
+3. Run `./telegram_test.sh` to verify your credentials.
+4. Build and start the container:
 
-`DB_FILE`, `LOG_FILE` and `REQUEST_TIMEOUT` can be changed in `.env`.
+    ```bash
+    docker compose up --build -d
+    ```
 
----
+    The container creates the SQLite database on first run. Optional variables
+    `DB_FILE`, `LOG_FILE` and `REQUEST_TIMEOUT` tune paths and request timeout.
 
-Made with ❤️ by [@cha0skvlt](https://github.com/cha0skvlt). Star the repo if it helps you!
+
+## Документация на русском
+
+Более подробное руководство по настройке и работе проекта находится в файле
+[`docs/guide_ru.md`](docs/guide_ru.md).
+
+
+Made by [@cha0skvlt](https://github.com/cha0skvlt). Star the repo if it helps you!
