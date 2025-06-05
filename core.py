@@ -23,7 +23,10 @@ CHAT_ID = os.getenv("CHAT_ID")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
 
 DB_FILE = os.getenv("DB_FILE", "/app/db.sqlite")
-if os.path.isdir(DB_FILE):
+# Treat a directory path or a new path without extension as a directory
+if os.path.isdir(DB_FILE) or (
+    not os.path.splitext(DB_FILE)[1] and not os.path.exists(DB_FILE)
+):
     DB_FILE = os.path.join(DB_FILE, "db.sqlite")
 
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))

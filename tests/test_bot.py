@@ -207,9 +207,13 @@ def test_start_bot(monkeypatch):
         def start_polling(self):
             events.append("started")
 
+        def idle(self):
+            events.append("idle")
+
     monkeypatch.setattr(bot, "Updater", FakeUpdater)
     monkeypatch.setattr(bot, "CommandHandler", lambda n, f: f"{n}:{f.__name__}")
     bot.start_bot()
     assert "started" in events
     assert any(e.startswith("status:") for e in events)
+    assert "idle" in events
 
