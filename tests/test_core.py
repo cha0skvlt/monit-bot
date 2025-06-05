@@ -3,6 +3,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import core
 import requests
+import socket
 import threading
 
 def test_save_and_load_sites(tmp_path, monkeypatch):
@@ -30,16 +31,10 @@ def test_check_sites_parallel(tmp_path, monkeypatch):
 
     core.save_sites(["https://ok.com", "https://bad.com"])
 
-    class Resp:
-        def __init__(self, code):
-            self.status_code = code
+    def fake_site_is_up(url):
+        return "ok.com" in url
 
-    def fake_get(url, timeout=10):
-        if "ok.com" in url:
-            return Resp(200)
-        raise requests.RequestException
-
-    monkeypatch.setattr(core.requests, "get", fake_get)
+    monkeypatch.setattr(core, "site_is_up", fake_site_is_up)
 
     core.check_sites()
 
@@ -63,9 +58,7 @@ def test_check_sites_alert_threshold(monkeypatch):
     monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
     alerts = []
     monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
-    def fake_get(url, timeout=10):
-        raise requests.RequestException
-    monkeypatch.setattr(core.requests, "get", fake_get)
+    monkeypatch.setattr(core, "site_is_up", lambda url: False)
     core.check_sites()
     assert alerts and "down for 3m" in alerts[0]
     assert saved[site]["down_since"] == status[site]["down_since"]
@@ -87,10 +80,7 @@ def test_check_sites_recovery(monkeypatch):
     monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
     alerts = []
     monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
-    class Resp:
-        def __init__(self, code):
-            self.status_code = code
-    monkeypatch.setattr(core.requests, "get", lambda url, timeout=10: Resp(200))
+    monkeypatch.setattr(core, "site_is_up", lambda url: True)
     core.check_sites()
     assert alerts and alerts[0].startswith("✅")
     assert saved[site]["down_since"] is None
@@ -160,8 +150,6 @@ def test_db_file_directory(tmp_path, monkeypatch):
         monkeypatch.delenv("DB_FILE", raising=False)
         importlib.reload(core_mod)
 
-
-
 def test_db_file_new_path(tmp_path, monkeypatch):
     import importlib
     d = tmp_path / "newdata"
@@ -190,7 +178,7 @@ def test_db_file_basename(tmp_path, monkeypatch):
     finally:
         monkeypatch.delenv("DB_FILE", raising=False)
         importlib.reload(core_mod)
-        
+
 def test_request_timeout_usage(tmp_path, monkeypatch):
     db = tmp_path / "db.sqlite"
     monkeypatch.setattr(core, "DB_FILE", str(db))
@@ -202,12 +190,16 @@ def test_request_timeout_usage(tmp_path, monkeypatch):
 
     called = {}
 
-    def fake_get(url, timeout=None):
+    def fake_head(url, timeout=None, **kw):
+        raise requests.RequestException
+
+    def fake_get(url, timeout=None, **kw):
         called["timeout"] = timeout
         class Resp:
             status_code = 200
         return Resp()
 
+    monkeypatch.setattr(core.requests, "head", fake_head)
     monkeypatch.setattr(core.requests, "get", fake_get)
     monkeypatch.setattr(core, "REQUEST_TIMEOUT", 5)
     core.check_sites()
@@ -225,9 +217,7 @@ def test_alert_after_adding_bad_site(tmp_path, monkeypatch):
     alerts = []
     monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
 
-    def fake_get(url, timeout=10):
-        raise requests.RequestException
-    monkeypatch.setattr(core.requests, "get", fake_get)
+    monkeypatch.setattr(core, "site_is_up", lambda url: False)
 
     base = core.datetime.datetime(2024, 1, 1, 0, 0, 0)
     class FixedDT(core.datetime.datetime):
@@ -256,9 +246,7 @@ def test_hourly_reminder_after_downtime(tmp_path, monkeypatch):
     alerts = []
     monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
 
-    def fake_get(url, timeout=10):
-        raise requests.RequestException
-    monkeypatch.setattr(core.requests, "get", fake_get)
+    monkeypatch.setattr(core, "site_is_up", lambda url: False)
 
     base = core.datetime.datetime(2024, 1, 1, 0, 0, 0)
     class FixedDT(core.datetime.datetime):
@@ -305,10 +293,7 @@ def test_alert_with_partial_minutes(monkeypatch):
     alerts = []
     monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
 
-    def fake_get(url, timeout=10):
-        raise requests.RequestException
-
-    monkeypatch.setattr(core.requests, "get", fake_get)
+    monkeypatch.setattr(core, "site_is_up", lambda url: False)
     core.check_sites()
     assert alerts and "down for 3m" in alerts[0]
 
@@ -336,3 +321,47 @@ def test_get_bot_single_instance(monkeypatch):
 
     assert objs[0] is objs[1]
     assert len(created) == 1
+
+
+def test_site_is_up_fallback(monkeypatch):
+    called = {}
+
+    def fake_head(url, *a, **k):
+        raise requests.RequestException
+
+    def fake_get(url, *a, **k):
+        raise requests.RequestException
+
+    def fake_getaddrinfo(host, port, type=None):
+        called["dns"] = True
+        return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("127.0.0.1", port))]
+
+    class DummySock:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+        def sendall(self, data):
+            called["sent"] = True
+
+        def recv(self, n):
+            return b"HTTP/1.1 200 OK\r\n"
+
+    def fake_create_connection(addr, timeout=None):
+        called["conn"] = addr
+        return DummySock()
+
+    class FakeCtx:
+        def wrap_socket(self, sock, server_hostname=None):
+            return sock
+
+    monkeypatch.setattr(core.requests, "head", fake_head)
+    monkeypatch.setattr(core.requests, "get", fake_get)
+    monkeypatch.setattr(core.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(core.socket, "create_connection", fake_create_connection)
+    monkeypatch.setattr(core.ssl, "create_default_context", lambda: FakeCtx())
+
+    assert core.site_is_up("https://example.com")
+    assert called.get("dns") and called.get("sent")

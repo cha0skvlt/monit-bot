@@ -12,6 +12,7 @@ Runs in Docker, stores data in SQLite and logs in JSON.
 ## Features
 
 - Uptime alerts after 3 minutes of downtime
+- Multi-stage checks avoid DNS caching errors
 - Daily SSL certificate check
 - Manage URLs via Telegram `/status`, `/ssl`, `/list`, `/add`, `/remove`
 - All data in a single SQLite file
@@ -29,6 +30,9 @@ Runs in Docker, stores data in SQLite and logs in JSON.
 
     The container creates the SQLite database on first run. Optional variables
     `DB_FILE`, `LOG_FILE` and `REQUEST_TIMEOUT` tune paths and request timeout.
+    If `DB_FILE` is a directory or a non-existent path without extension, the
+    file `db.sqlite` will be created inside it. A plain filename will place the
+    database in the current working directory.
 
     If `DB_FILE` points to a directory, the file `db.sqlite` will be created
     inside it.

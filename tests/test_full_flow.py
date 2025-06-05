@@ -43,11 +43,7 @@ def test_bot_command_flow(tmp_path, monkeypatch):
     monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
     monkeypatch.setattr(bot, "check_ssl", lambda: "SSL OK")
 
-    class Resp:
-        def __init__(self, code):
-            self.status_code = code
-
-    monkeypatch.setattr(core.requests, "get", lambda url, timeout=10: Resp(200))
+    monkeypatch.setattr(core, "site_is_up", lambda url: True)
 
     text = _call(bot.cmd_add, ["https://x.com"])
     assert "Added" in text
@@ -61,11 +57,7 @@ def test_bot_command_flow(tmp_path, monkeypatch):
     text = _call(bot.cmd_ssl_check)
     assert text == "SSL OK"
 
-    monkeypatch.setattr(
-        core.requests,
-        "get",
-        lambda url, timeout=10: (_ for _ in ()).throw(requests.RequestException()),
-    )
+    monkeypatch.setattr(core, "site_is_up", lambda url: False)
 
     base = core.datetime.datetime(2024, 1, 1, 0, 0, 0)
 
@@ -82,7 +74,7 @@ def test_bot_command_flow(tmp_path, monkeypatch):
     core.check_sites()
     assert any("down for 3m" in a for a in alerts)
 
-    monkeypatch.setattr(core.requests, "get", lambda url, timeout=10: Resp(200))
+    monkeypatch.setattr(core, "site_is_up", lambda url: True)
     FixedDT.current = base + core.datetime.timedelta(minutes=4)
     core.check_sites()
     assert any(a.startswith("✅") for a in alerts)
