@@ -21,7 +21,11 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
-DB_FILE = os.getenv("DB_FILE", "/app/db.sqlite")
+DB_FILE_ENV = os.getenv("DB_FILE", "/app/db.sqlite")
+db_path = Path(DB_FILE_ENV)
+if db_path.is_dir() or (not db_path.suffix and not db_path.exists()):
+    db_path /= "db.sqlite"
+DB_FILE = str(db_path)
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))
 
 LEGACY_SITES_FILE = Path("/app/sites.txt")
@@ -35,7 +39,8 @@ def init_db():
     """Create database and migrate data on first run."""
     if getattr(init_db, "done", False):
         return
-    os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
+    dir_name = os.path.dirname(DB_FILE) or "."
+    os.makedirs(dir_name, exist_ok=True)
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     cur.execute("CREATE TABLE IF NOT EXISTS sites (url TEXT PRIMARY KEY)")

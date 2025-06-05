@@ -29,6 +29,9 @@ Runs in Docker, stores data in SQLite and logs in JSON.
 
     The container creates the SQLite database on first run. Optional variables
     `DB_FILE`, `LOG_FILE` and `REQUEST_TIMEOUT` tune paths and request timeout.
+    If `DB_FILE` is a directory or a non-existent path without extension, the
+    file `db.sqlite` will be created inside it. A plain filename will place the
+    database in the current working directory.
 
 
 ## Документация на русском
