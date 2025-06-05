@@ -3,6 +3,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import core
 import requests
+import threading
 
 def test_save_and_load_sites(tmp_path, monkeypatch):
     tmp_file = tmp_path / "sites.txt"
@@ -235,3 +236,28 @@ def test_hourly_reminder_after_downtime(tmp_path, monkeypatch):
     core.check_sites()
 
     assert any("down for 1h 5m" in a for a in alerts)
+
+
+def test_get_bot_single_instance(monkeypatch):
+    created = []
+
+    class FakeBot:
+        def __init__(self, token):
+            created.append(token)
+
+    monkeypatch.setattr(core, "Bot", FakeBot)
+    monkeypatch.setattr(core, "BOT_TOKEN", "T")
+    core._bot = None
+    core._bot_lock = threading.Lock()
+
+    objs = []
+
+    def worker():
+        objs.append(core._get_bot())
+
+    t1 = threading.Thread(target=worker)
+    t2 = threading.Thread(target=worker)
+    t1.start(); t2.start(); t1.join(); t2.join()
+
+    assert objs[0] is objs[1]
+    assert len(created) == 1
