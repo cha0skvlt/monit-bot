@@ -1,9 +1,7 @@
-# 🛡️ Web Monitor Telegram Bot
+# 🤖 Web Monitor Bot
 
-A minimal yet production-ready bot that checks websites for uptime and SSL
-certificate expiration. Alerts are delivered to Telegram and all events are
-stored in structured JSON logs. The bot is designed to run in Docker with
-persistent state.
+Minimal Telegram bot that checks your sites every minute and warns about expiring SSL certificates.
+Runs in Docker, stores data in SQLite and logs in JSON.
 
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)
@@ -13,24 +11,12 @@ persistent state.
 
 ## Features
 
-- 🌍 **Uptime Monitoring** – each site is checked every minute in parallel.
-  After at least 3 minutes of downtime you get an alert and then hourly
-  reminders until it recovers.
-- 🔐 **SSL Certificate Lifetime** – certificates are verified daily at 06:00 UTC
-  and on demand. Alerts are sent if any certificate expires in seven days or less.
-- 📡 **Telegram Commands** – manage the monitored list directly in chat:
-  `/status`, `/ssl`, `/list`, `/add URL`, `/remove URL` and `/start` for help.
-- 💾 **Durable State** – data stored in SQLite (`db.sqlite` by default).
-  Path is controlled by `DB_FILE`. Legacy files migrate automatically on first run.
-- ⏱️ **Request Timeout** – HTTP requests use `REQUEST_TIMEOUT` seconds.
-- 📄 **Structured Logging** – events are written in JSON so they can be easily
-  processed by Grafana Loki, ELK or other tools.
-- 📴 **Graceful Startup** – the bot skips checks when no sites are configured.
-- 📈 **Instant Status Updates** – the `/status` command reflects additions and removals immediately.
-- ✅ **Strict HTTP 200 check** – a site is marked OK only when it returns HTTP 200.
+- Uptime alerts after 3 minutes of downtime
+- Daily SSL certificate check
+- Manage URLs via Telegram `/status`, `/ssl`, `/list`, `/add`, `/remove`
+- All data in a single SQLite file
 
-
-## Setup
+## Quick start
 
 1. Clone this repository.
 2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
@@ -45,19 +31,10 @@ persistent state.
     `DB_FILE`, `LOG_FILE` and `REQUEST_TIMEOUT` tune paths and request timeout.
 
 
-## 📚 Документация на русском
+## Документация на русском
 
 Более подробное руководство по настройке и работе проекта находится в файле
 [`docs/guide_ru.md`](docs/guide_ru.md).
 
 
-### Running tests
-
-```bash
-pip install -r requirements.txt
-pytest -q
-```
-
-## Version
-
-Current release: **1.1**
+Made by [@cha0skvlt](https://github.com/cha0skvlt). Star the repo if it helps you!
