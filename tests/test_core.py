@@ -150,7 +150,6 @@ def test_db_file_directory(tmp_path, monkeypatch):
         monkeypatch.delenv("DB_FILE", raising=False)
         importlib.reload(core_mod)
 
-
 def test_db_file_new_path(tmp_path, monkeypatch):
     import importlib
     d = tmp_path / "newdata"
@@ -179,7 +178,6 @@ def test_db_file_basename(tmp_path, monkeypatch):
     finally:
         monkeypatch.delenv("DB_FILE", raising=False)
         importlib.reload(core_mod)
-
 
 def test_request_timeout_usage(tmp_path, monkeypatch):
     db = tmp_path / "db.sqlite"

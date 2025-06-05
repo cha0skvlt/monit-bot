@@ -34,6 +34,10 @@ Runs in Docker, stores data in SQLite and logs in JSON.
     file `db.sqlite` will be created inside it. A plain filename will place the
     database in the current working directory.
 
+    If `DB_FILE` points to a directory, the file `db.sqlite` will be created
+    inside it.
+
+
 
 ## Документация на русском
 
