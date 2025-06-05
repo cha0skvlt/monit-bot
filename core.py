@@ -21,9 +21,11 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
-DB_FILE = os.getenv("DB_FILE", "/app/db.sqlite")
-if os.path.isdir(DB_FILE):
-    DB_FILE = os.path.join(DB_FILE, "db.sqlite")
+DB_FILE_ENV = os.getenv("DB_FILE", "/app/db.sqlite")
+db_path = Path(DB_FILE_ENV)
+if db_path.is_dir() or (not db_path.suffix and not db_path.exists()):
+    db_path /= "db.sqlite"
+DB_FILE = str(db_path)
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))
 
 LEGACY_SITES_FILE = Path("/app/sites.txt")

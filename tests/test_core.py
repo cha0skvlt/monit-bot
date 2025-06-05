@@ -161,6 +161,21 @@ def test_db_file_directory(tmp_path, monkeypatch):
         importlib.reload(core_mod)
 
 
+def test_db_file_new_path(tmp_path, monkeypatch):
+    import importlib
+    d = tmp_path / "newdata"
+    monkeypatch.setenv("DB_FILE", str(d))
+    import core as core_mod
+    importlib.reload(core_mod)
+    try:
+        core_mod.init_db()
+        assert core_mod.DB_FILE == str(d / "db.sqlite")
+        assert (d / "db.sqlite").exists()
+    finally:
+        monkeypatch.delenv("DB_FILE", raising=False)
+        importlib.reload(core_mod)
+
+
 def test_request_timeout_usage(tmp_path, monkeypatch):
     db = tmp_path / "db.sqlite"
     monkeypatch.setattr(core, "DB_FILE", str(db))
