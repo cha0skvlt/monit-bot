@@ -56,7 +56,7 @@ def test_check_sites_alert_threshold(monkeypatch):
         def utcnow(cls):
             return fixed_now
     monkeypatch.setattr(core.datetime, "datetime", FixedDT)
-    status = {site: {"down_since": (fixed_now - core.datetime.timedelta(minutes=5)).isoformat()}}
+    status = {site: {"down_since": (fixed_now - core.datetime.timedelta(minutes=3)).isoformat()}}
     monkeypatch.setattr(core, "load_status", lambda: status.copy())
     saved = {}
     monkeypatch.setattr(core, "save_status", lambda d: saved.update(d))
@@ -67,7 +67,7 @@ def test_check_sites_alert_threshold(monkeypatch):
         raise requests.RequestException
     monkeypatch.setattr(core.requests, "get", fake_get)
     core.check_sites()
-    assert alerts and "down for 5m" in alerts[0]
+    assert alerts and "down for 3m" in alerts[0]
     assert saved[site]["down_since"] == status[site]["down_since"]
 
 
@@ -198,9 +198,9 @@ def test_alert_after_adding_bad_site(tmp_path, monkeypatch):
     core.check_sites()
     assert not alerts
 
-    FixedDT.current = base + core.datetime.timedelta(minutes=5)
+    FixedDT.current = base + core.datetime.timedelta(minutes=3)
     core.check_sites()
-    assert alerts and "down for 5m" in alerts[0]
+    assert alerts and "down for 3m" in alerts[0]
 
 
 def test_hourly_reminder_after_downtime(tmp_path, monkeypatch):
@@ -229,13 +229,40 @@ def test_hourly_reminder_after_downtime(tmp_path, monkeypatch):
     core.save_sites([site])
     core.check_sites()
 
-    FixedDT.current = base + core.datetime.timedelta(minutes=5)
+    FixedDT.current = base + core.datetime.timedelta(minutes=3)
     core.check_sites()
 
-    FixedDT.current = base + core.datetime.timedelta(minutes=65)
+    FixedDT.current = base + core.datetime.timedelta(minutes=63)
     core.check_sites()
 
-    assert any("down for 1h 5m" in a for a in alerts)
+    assert any("down for 1h 3m" in a for a in alerts)
+
+
+def test_alert_with_partial_minutes(monkeypatch):
+    site = "https://bad.com"
+    monkeypatch.setattr(core, "load_sites", lambda: [site])
+    now = core.datetime.datetime(2024, 1, 1, 1, 0, 0)
+
+    class FixedDT(core.datetime.datetime):
+        @classmethod
+        def utcnow(cls):
+            return now
+
+    monkeypatch.setattr(core.datetime, "datetime", FixedDT)
+    status = {site: {"down_since": (now - core.datetime.timedelta(minutes=3, seconds=10)).isoformat()}}
+    monkeypatch.setattr(core, "load_status", lambda: status.copy())
+    saved = {}
+    monkeypatch.setattr(core, "save_status", lambda d: saved.update(d))
+    monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
+    alerts = []
+    monkeypatch.setattr(core, "send_alert", lambda msg, **k: alerts.append(msg))
+
+    def fake_get(url, timeout=10):
+        raise requests.RequestException
+
+    monkeypatch.setattr(core.requests, "get", fake_get)
+    core.check_sites()
+    assert alerts and "down for 3m" in alerts[0]
 
 
 def test_get_bot_single_instance(monkeypatch):
