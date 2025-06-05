@@ -13,6 +13,7 @@ STATUS_FILE = os.getenv("STATUS_FILE", "/app/status.json")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))
 
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(message)s")
 
 def log_event(data: dict):
@@ -52,6 +53,7 @@ def load_sites():
         return [line.strip() for line in f if line.strip()]
 
 def save_sites(sites):
+    os.makedirs(os.path.dirname(SITES_FILE), exist_ok=True)
     with open(SITES_FILE, "w") as f:
         for s in sites:
             f.write(s.strip() + "\n")
@@ -66,6 +68,7 @@ def load_status():
         return {}
 
 def save_status(data):
+    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
     with open(STATUS_FILE, "w") as f:
         json.dump(data, f)
 
@@ -154,17 +157,20 @@ def check_ssl():
 
 def daily_ssl_loop():
     while True:
-        now = datetime.datetime.utcnow()
-        target = now.replace(hour=6, minute=0, second=0, microsecond=0)
-        if now >= target:
-            target += datetime.timedelta(days=1)
-        sleep_seconds = (target - now).total_seconds()
-        time.sleep(sleep_seconds)
+        try:
+            now = datetime.datetime.utcnow()
+            target = now.replace(hour=6, minute=0, second=0, microsecond=0)
+            if now >= target:
+                target += datetime.timedelta(days=1)
+            sleep_seconds = (target - now).total_seconds()
+            time.sleep(sleep_seconds)
 
-        result = check_ssl()
-        alerts = [line for line in result.splitlines() if line.startswith("⚠️")]
-        if alerts:
-            send_alert(
-                "⚠️ Sites with expiring SSL certificates:\n" + "\n".join(alerts),
-                disable_web_page_preview=True,
-            )
+            result = check_ssl()
+            alerts = [line for line in result.splitlines() if line.startswith("⚠️")]
+            if alerts:
+                send_alert(
+                    "⚠️ Sites with expiring SSL certificates:\n" + "\n".join(alerts),
+                    disable_web_page_preview=True,
+                )
+        except Exception as e:
+            print(f"[daily_ssl_loop error] {e}")
