@@ -33,14 +33,17 @@ def _get_bot():
 
 
 def send_alert(msg, disable_web_page_preview=True):
+    if not CHAT_ID:
+        print("[send_alert] CHAT_ID not set")
+        return
     try:
         _get_bot().send_message(
             chat_id=CHAT_ID,
             text=msg,
             disable_web_page_preview=disable_web_page_preview,
         )
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[send_alert error] {e}")
 
 def load_sites():
     if not os.path.exists(SITES_FILE):
@@ -97,8 +100,8 @@ def check_sites():
                 status[site] = {"down_since": now.isoformat()}
             else:
                 delta = now - datetime.datetime.fromisoformat(status[site]["down_since"])
-                minutes = round(delta.total_seconds() / 60)
-                if minutes >= 5 and (minutes - 5) % 60 == 0:
+                minutes = int(delta.total_seconds() // 60)
+                if minutes >= 3 and (minutes - 3) % 60 == 0:
                     hours = minutes // 60
                     mins = minutes % 60
                     log_event({
