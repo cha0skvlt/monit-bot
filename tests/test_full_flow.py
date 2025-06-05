@@ -1,7 +1,7 @@
 import os
 import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import requests
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import bot
 import core
@@ -34,8 +34,8 @@ def _call(func, args=None):
     return upd.message.texts[0]
 
 def test_bot_command_flow(tmp_path, monkeypatch):
-    monkeypatch.setattr(core, "SITES_FILE", str(tmp_path / "sites.txt"))
-    monkeypatch.setattr(core, "STATUS_FILE", str(tmp_path / "status.json"))
+    monkeypatch.setattr(core, "DB_FILE", str(tmp_path / "db.sqlite"))
+    core.init_db.done = False
     monkeypatch.setattr(core, "LOG_FILE", str(tmp_path / "log.log"))
     monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
 

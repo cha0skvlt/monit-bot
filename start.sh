@@ -1,11 +1,10 @@
 #!/bin/sh
 set -e
 
-STATUS_FILE=${STATUS_FILE:-/app/status.json}
-
-if [ ! -s "$STATUS_FILE" ]; then
-    echo '{}' > "$STATUS_FILE"
-fi
+python - <<'EOF'
+import core
+core.init_db()
+EOF
 
 if [ -n "$SKIP_BOT" ]; then
     exit 0

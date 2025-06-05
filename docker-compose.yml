@@ -6,8 +6,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./sites.txt:/app/sites.txt
-      - ./status.json:/app/status.json
+      - ./db.sqlite:/app/db.sqlite
       - ./logs:/app/logs
     logging:
       driver: "json-file"

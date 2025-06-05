@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-import threading, time, os
-from dotenv import load_dotenv
+import os
+import threading
+import time
 from datetime import datetime
-from telegram import Update, ChatAction
-from telegram.ext import Updater, CommandHandler, CallbackContext
+
+from dotenv import load_dotenv
+from telegram import ChatAction, Update
+from telegram.ext import CallbackContext, CommandHandler, Updater
 from core import (
     check_sites,
     check_ssl,

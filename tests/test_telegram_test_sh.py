@@ -29,7 +29,5 @@ def test_telegram_test_sh_loads_env_file(tmp_path):
         text=True,
     )
 
-    result = subprocess.run(["sh", str(script)], env=env, capture_output=True, text=True)
-
     assert result.returncode == 0
     assert "DRY RUN" in result.stdout

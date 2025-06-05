@@ -1,30 +1,30 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import core
 import requests
 import threading
 
 def test_save_and_load_sites(tmp_path, monkeypatch):
-    tmp_file = tmp_path / "sites.txt"
-    monkeypatch.setattr(core, "SITES_FILE", str(tmp_file))
+    db = tmp_path / "db.sqlite"
+    monkeypatch.setattr(core, "DB_FILE", str(db))
+    core.init_db.done = False
 
     # initially file does not exist
     assert core.load_sites() == []
 
     data = ["https://example.com", "https://google.com"]
     core.save_sites(data)
-    assert tmp_file.exists()
+    assert db.exists()
 
     loaded = core.load_sites()
     assert loaded == data
 
 
 def test_check_sites_parallel(tmp_path, monkeypatch):
-    sites_file = tmp_path / "sites.txt"
-    status_file = tmp_path / "status.json"
-    monkeypatch.setattr(core, "SITES_FILE", str(sites_file))
-    monkeypatch.setattr(core, "STATUS_FILE", str(status_file))
+    db = tmp_path / "db.sqlite"
+    monkeypatch.setattr(core, "DB_FILE", str(db))
+    core.init_db.done = False
     monkeypatch.setattr(core, "send_alert", lambda *a, **k: None)
     monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
 
@@ -106,25 +106,26 @@ def test_check_sites_no_sites(monkeypatch):
         lambda d: (_ for _ in ()).throw(AssertionError("should not save")),
     )
 
-    monkeypatch.setattr(core, "save_status", lambda d: (_ for _ in ()).throw(AssertionError("should not save")))
+    monkeypatch.setattr(
+        core,
+        "save_status",
+        lambda d: (_ for _ in ()).throw(AssertionError("should not save")),
+    )
 
     core.check_sites()  # should not raise
 
 
 def test_env_override_files(tmp_path, monkeypatch):
-    monkeypatch.setenv("SITES_FILE", str(tmp_path / "s.txt"))
-    monkeypatch.setenv("STATUS_FILE", str(tmp_path / "st.json"))
+    monkeypatch.setenv("DB_FILE", str(tmp_path / "db.sqlite"))
     monkeypatch.setenv("LOG_FILE", str(tmp_path / "log.log"))
     import importlib
     import core as core_mod
     importlib.reload(core_mod)
     try:
-        assert core_mod.SITES_FILE == str(tmp_path / "s.txt")
-        assert core_mod.STATUS_FILE == str(tmp_path / "st.json")
+        assert core_mod.DB_FILE == str(tmp_path / "db.sqlite")
         assert core_mod.LOG_FILE == str(tmp_path / "log.log")
     finally:
-        monkeypatch.delenv("SITES_FILE", raising=False)
-        monkeypatch.delenv("STATUS_FILE", raising=False)
+        monkeypatch.delenv("DB_FILE", raising=False)
         monkeypatch.delenv("LOG_FILE", raising=False)
         importlib.reload(core_mod)
 
@@ -132,14 +133,12 @@ def test_env_override_files(tmp_path, monkeypatch):
 def test_env_defaults(monkeypatch):
     import importlib
     import core as core_mod
-    monkeypatch.delenv("SITES_FILE", raising=False)
-    monkeypatch.delenv("STATUS_FILE", raising=False)
+    monkeypatch.delenv("DB_FILE", raising=False)
     monkeypatch.delenv("LOG_FILE", raising=False)
     monkeypatch.delenv("REQUEST_TIMEOUT", raising=False)
     importlib.reload(core_mod)
     try:
-        assert core_mod.SITES_FILE == "/app/sites.txt"
-        assert core_mod.STATUS_FILE == "/app/status.json"
+        assert core_mod.DB_FILE == "/app/db.sqlite"
         assert core_mod.LOG_FILE == "/app/logs/monitor.log"
         assert core_mod.REQUEST_TIMEOUT == 10
     finally:
@@ -147,10 +146,9 @@ def test_env_defaults(monkeypatch):
 
 
 def test_request_timeout_usage(tmp_path, monkeypatch):
-    sites_file = tmp_path / "sites.txt"
-    status_file = tmp_path / "status.json"
-    monkeypatch.setattr(core, "SITES_FILE", str(sites_file))
-    monkeypatch.setattr(core, "STATUS_FILE", str(status_file))
+    db = tmp_path / "db.sqlite"
+    monkeypatch.setattr(core, "DB_FILE", str(db))
+    core.init_db.done = False
     monkeypatch.setattr(core, "send_alert", lambda *a, **k: None)
     monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
 
@@ -173,10 +171,9 @@ def test_request_timeout_usage(tmp_path, monkeypatch):
 
 def test_alert_after_adding_bad_site(tmp_path, monkeypatch):
     site = "https://bad.com"
-    sites_file = tmp_path / "sites.txt"
-    status_file = tmp_path / "status.json"
-    monkeypatch.setattr(core, "SITES_FILE", str(sites_file))
-    monkeypatch.setattr(core, "STATUS_FILE", str(status_file))
+    db = tmp_path / "db.sqlite"
+    monkeypatch.setattr(core, "DB_FILE", str(db))
+    core.init_db.done = False
     monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
 
     alerts = []
@@ -205,10 +202,9 @@ def test_alert_after_adding_bad_site(tmp_path, monkeypatch):
 
 def test_hourly_reminder_after_downtime(tmp_path, monkeypatch):
     site = "https://bad.com"
-    sites_file = tmp_path / "sites.txt"
-    status_file = tmp_path / "status.json"
-    monkeypatch.setattr(core, "SITES_FILE", str(sites_file))
-    monkeypatch.setattr(core, "STATUS_FILE", str(status_file))
+    db = tmp_path / "db.sqlite"
+    monkeypatch.setattr(core, "DB_FILE", str(db))
+    core.init_db.done = False
     monkeypatch.setattr(core, "log_event", lambda *a, **k: None)
 
     alerts = []
@@ -249,7 +245,13 @@ def test_alert_with_partial_minutes(monkeypatch):
             return now
 
     monkeypatch.setattr(core.datetime, "datetime", FixedDT)
-    status = {site: {"down_since": (now - core.datetime.timedelta(minutes=3, seconds=10)).isoformat()}}
+    status = {
+        site: {
+            "down_since": (
+                now - core.datetime.timedelta(minutes=3, seconds=10)
+            ).isoformat()
+        }
+    }
     monkeypatch.setattr(core, "load_status", lambda: status.copy())
     saved = {}
     monkeypatch.setattr(core, "save_status", lambda d: saved.update(d))
