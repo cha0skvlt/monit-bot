@@ -26,7 +26,9 @@ A minimal yet production-ready bot that checks websites for uptime and SSL certi
 
 1. Clone this repository.
 2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
-3. Build and start the container:
+
+3. Run `./telegram_test.sh` to verify your credentials.
+4. Build and start the container:
 
     ```bash
     docker compose up --build -d
