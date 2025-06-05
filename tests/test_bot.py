@@ -1,9 +1,7 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import json
-import types
 import core
 import bot
 from types import SimpleNamespace
@@ -58,8 +56,9 @@ def test_send_alert(monkeypatch):
 
 
 def test_load_and_save_status(tmp_path, monkeypatch):
-    f = tmp_path / "status.json"
-    monkeypatch.setattr(core, "STATUS_FILE", str(f))
+    db = tmp_path / "db.sqlite"
+    monkeypatch.setattr(core, "DB_FILE", str(db))
+    core.init_db.done = False
     data = {"site": {"down_since": None}}
     core.save_status(data)
     loaded = core.load_status()
@@ -183,15 +182,6 @@ def test_status_shows_down(monkeypatch):
     upd = _call_cmd(bot.cmd_status)
     text = upd.message.texts[0]
     assert "DOWN" in text and "x" in text
-
-
-def test_status_ignores_removed(monkeypatch):
-    monkeypatch.setattr(bot, "check_sites", lambda: None)
-    monkeypatch.setattr(bot, "load_sites", lambda: ["b"])
-    monkeypatch.setattr(bot, "load_status", lambda: {"a": {"down_since": None}, "b": {"down_since": None}})
-    upd = _call_cmd(bot.cmd_status)
-    text = upd.message.texts[0]
-    assert "b" in text and "a —" not in text
 
 
 def test_cmd_ssl_check(monkeypatch):

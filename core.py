@@ -1,25 +1,76 @@
 #!/usr/bin/env python3
-import os, json, ssl, socket, datetime, requests, logging, time, threading
-from telegram import Bot
+
+import datetime
+import json
+import logging
+import os
+import socket
+import ssl
+import sqlite3
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from urllib.parse import urlparse
+
+import requests
 from dotenv import load_dotenv
+from telegram import Bot
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
-SITES_FILE = os.getenv("SITES_FILE", "/app/sites.txt")
-STATUS_FILE = os.getenv("STATUS_FILE", "/app/status.json")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
+DB_FILE = os.getenv("DB_FILE", "/app/db.sqlite")
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))
+
+LEGACY_SITES_FILE = Path("/app/sites.txt")
+LEGACY_STATUS_FILE = Path("/app/status.json")
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(message)s")
+
+
+def init_db():
+    """Create database and migrate data on first run."""
+    if getattr(init_db, "done", False):
+        return
+    os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS sites (url TEXT PRIMARY KEY)")
+    cur.execute(
+        "CREATE TABLE IF NOT EXISTS status (site TEXT PRIMARY KEY, down_since TEXT)"
+    )
+    cur.execute("CREATE TABLE IF NOT EXISTS logs (data TEXT)")
+    cur.execute("SELECT COUNT(*) FROM sites")
+    if cur.fetchone()[0] == 0 and LEGACY_SITES_FILE.exists():
+        for line in LEGACY_SITES_FILE.read_text().splitlines():
+            url = line.strip()
+            if url:
+                cur.execute("INSERT OR IGNORE INTO sites(url) VALUES (?)", (url,))
+    cur.execute("SELECT COUNT(*) FROM status")
+    if cur.fetchone()[0] == 0 and LEGACY_STATUS_FILE.exists():
+        try:
+            data = json.loads(LEGACY_STATUS_FILE.read_text())
+        except json.JSONDecodeError:
+            data = {}
+        for site, st in data.items():
+            cur.execute(
+                "INSERT OR IGNORE INTO status(site, down_since) VALUES (?, ?)",
+                (site, st.get("down_since")),
+            )
+    conn.commit()
+    conn.close()
+    init_db.done = True
 
 def log_event(data: dict):
     """Append structured JSON event to log file."""
     data["timestamp"] = datetime.datetime.utcnow().isoformat() + "Z"
     logging.info(json.dumps(data))
+    init_db()
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("INSERT INTO logs(data) VALUES (?)", (json.dumps(data),))
 
 _bot = None
 _bot_lock = threading.Lock()
@@ -47,30 +98,36 @@ def send_alert(msg, disable_web_page_preview=True):
         print(f"[send_alert error] {e}")
 
 def load_sites():
-    if not os.path.exists(SITES_FILE):
-        return []
-    with open(SITES_FILE) as f:
-        return [line.strip() for line in f if line.strip()]
+    init_db()
+    with sqlite3.connect(DB_FILE) as conn:
+        cur = conn.execute("SELECT url FROM sites ORDER BY url")
+        return [row[0] for row in cur.fetchall()]
 
 def save_sites(sites):
-    os.makedirs(os.path.dirname(SITES_FILE), exist_ok=True)
-    with open(SITES_FILE, "w") as f:
-        for s in sites:
-            f.write(s.strip() + "\n")
+    init_db()
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("DELETE FROM sites")
+        conn.executemany(
+            "INSERT INTO sites(url) VALUES (?)",
+            [(s.strip(),) for s in sites if s.strip()],
+        )
+        conn.commit()
 
 def load_status():
-    if not os.path.exists(STATUS_FILE):
-        return {}
-    try:
-        with open(STATUS_FILE) as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        return {}
+    init_db()
+    with sqlite3.connect(DB_FILE) as conn:
+        cur = conn.execute("SELECT site, down_since FROM status")
+        return {row[0]: {"down_since": row[1]} for row in cur.fetchall()}
 
 def save_status(data):
-    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
-    with open(STATUS_FILE, "w") as f:
-        json.dump(data, f)
+    init_db()
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("DELETE FROM status")
+        conn.executemany(
+            "INSERT INTO status(site, down_since) VALUES (?, ?)",
+            [(k, v.get("down_since")) for k, v in data.items()],
+        )
+        conn.commit()
 
 def check_sites():
     sites = load_sites()
