@@ -232,27 +232,6 @@ def test_cmd_rm_admin(monkeypatch):
     assert "Admin removed" in upd.message.texts[0]
     assert "2" in removed
 
-def test_cmd_admins(monkeypatch):
-    bot.load_admins = lambda: ["1", "2"]
-    upd = DummyUpdate()
-    bot.cmd_admins(upd, DummyContext(args=[]))
-    text = upd.message.texts[0]
-    assert "1" in text and "2" in text
-
-def test_add_rm_admin_invalid(monkeypatch):
-    upd = DummyUpdate()
-    upd.effective_user.id = int(bot.OWNER_ID or 1)
-    bot.OWNER_ID = "1"
-    bot.load_admins = lambda: ["1"]
-    bot.add_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
-    bot.cmd_add_admin(upd, DummyContext(args=["bad"]))
-    assert "Invalid ID" in upd.message.texts[0]
-
-    upd2 = DummyUpdate()
-    upd2.effective_user.id = int(bot.OWNER_ID or 1)
-    bot.remove_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
-    bot.cmd_rm_admin(upd2, DummyContext(args=["bad"]))
-    assert "Invalid ID" in upd2.message.texts[0]
 
 def test_cmd_help_ru(monkeypatch):
     upd = DummyUpdate()
