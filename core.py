@@ -3,6 +3,7 @@
 import datetime
 import json
 import logging
+from logging import handlers
 import os
 import socket
 import ssl
@@ -21,6 +22,8 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
+OWNER_ID = os.getenv("OWNER_ID")
+ADMIN_IDS = [s for s in os.getenv("ADMIN_IDS", "").split(",") if s]
 
 DB_FILE = os.getenv("DB_FILE", "/app/db.sqlite")
 # Treat a directory path or a new path without extension as a directory
@@ -35,7 +38,10 @@ LEGACY_SITES_FILE = Path("/app/sites.txt")
 LEGACY_STATUS_FILE = Path("/app/status.json")
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
-logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(message)s")
+handler = logging.handlers.RotatingFileHandler(
+    LOG_FILE, maxBytes=1_000_000, backupCount=3
+)
+logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[handler])
 
 
 def init_db():
@@ -51,6 +57,12 @@ def init_db():
         "CREATE TABLE IF NOT EXISTS status (site TEXT PRIMARY KEY, down_since TEXT)"
     )
     cur.execute("CREATE TABLE IF NOT EXISTS logs (data TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY)")
+    if ADMIN_IDS or OWNER_ID:
+        existing = {str(r[0]) for r in cur.execute("SELECT id FROM admins")}
+        for a in list(ADMIN_IDS) + ([OWNER_ID] if OWNER_ID else []):
+            if a and a not in existing:
+                cur.execute("INSERT INTO admins(id) VALUES (?)", (int(a),))
     cur.execute("SELECT COUNT(*) FROM sites")
     if cur.fetchone()[0] == 0 and LEGACY_SITES_FILE.exists():
         for line in LEGACY_SITES_FILE.read_text().splitlines():
@@ -137,6 +149,28 @@ def save_status(data):
         )
         conn.commit()
 
+def load_admins():
+    init_db()
+    with sqlite3.connect(DB_FILE) as conn:
+        cur = conn.execute("SELECT id FROM admins")
+        return [str(r[0]) for r in cur.fetchall()]
+
+def add_admin(admin_id: str):
+    init_db()
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("INSERT OR IGNORE INTO admins(id) VALUES (?)", (int(admin_id),))
+        conn.commit()
+
+def remove_admin(admin_id: str):
+    init_db()
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("DELETE FROM admins WHERE id=?", (int(admin_id),))
+        conn.commit()
+
+def is_valid_url(url: str) -> bool:
+    p = urlparse(url)
+    return p.scheme in {"http", "https"} and bool(p.netloc)
+
 def site_is_up(url: str) -> bool:
     headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
     try:
@@ -189,7 +223,11 @@ def check_sites():
     now = datetime.datetime.utcnow()
 
     def fetch(site):
-        return site, site_is_up(site)
+        try:
+            return site, site_is_up(site)
+        except Exception as e:
+            log_event({"type": "site_check_error", "site": site, "error": str(e)})
+            return site, False
 
     with ThreadPoolExecutor(max_workers=min(10, len(sites))) as executor:
         try:
