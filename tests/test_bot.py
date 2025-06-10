@@ -22,6 +22,7 @@ class DummyMessage:
 class DummyUpdate:
     def __init__(self):
         self.message = DummyMessage()
+        self.effective_user = SimpleNamespace(id=1, language_code="en")
 
 class DummyContext(SimpleNamespace):
     pass
@@ -103,6 +104,7 @@ def test_check_ssl(monkeypatch):
 def _call_cmd(func, ctx_args=None):
     update = DummyUpdate()
     ctx = DummyContext(args=ctx_args or [])
+    bot.load_admins = lambda: ["1"]
     func(update, ctx)
     return update
 
@@ -132,12 +134,18 @@ def test_cmd_add(monkeypatch):
     def fake_save(x):
         sites[:] = x
     monkeypatch.setattr(bot, "save_sites", fake_save)
-    upd = _call_cmd(bot.cmd_add, ["x"])
+    upd = _call_cmd(bot.cmd_add, ["https://x.com"])
     assert "Added" in upd.message.texts[0]
-    assert "x" in sites
+    assert "https://x.com" in sites
+
+def test_cmd_add_invalid(monkeypatch):
+    monkeypatch.setattr(bot, "load_sites", lambda: [])
+    monkeypatch.setattr(bot, "save_sites", lambda x: None)
+    upd = _call_cmd(bot.cmd_add, ["bad"])
+    assert "Invalid URL" in upd.message.texts[0]
 
 
-def test_cmd_remove(monkeypatch):
+def test_cmd_rem(monkeypatch):
     sites = ["x"]
     status = {"x": {"down_since": None}}
     monkeypatch.setattr(bot, "load_sites", lambda: sites)
@@ -148,7 +156,7 @@ def test_cmd_remove(monkeypatch):
         status.clear(); status.update(d)
     monkeypatch.setattr(bot, "save_sites", fake_save_sites)
     monkeypatch.setattr(bot, "save_status", fake_save_status)
-    upd = _call_cmd(bot.cmd_remove, ["x"])
+    upd = _call_cmd(bot.cmd_rem, ["x"])
     assert "Removed" in upd.message.texts[0]
     assert sites == [] and status == {}
 
@@ -186,8 +194,14 @@ def test_status_shows_down(monkeypatch):
 
 def test_cmd_ssl_check(monkeypatch):
     monkeypatch.setattr(bot, "check_ssl", lambda: "SSL")
+    class DummyThread:
+        def __init__(self, target):
+            self.target = target
+        def start(self):
+            self.target()
+    monkeypatch.setattr(bot.threading, "Thread", DummyThread)
     upd = _call_cmd(bot.cmd_ssl_check)
-    assert upd.message.texts[0] == "SSL"
+    assert "SSL" in upd.message.texts[0]
 
 
 def test_cmd_start():
@@ -195,6 +209,57 @@ def test_cmd_start():
     text = upd.message.texts[0]
     assert "SSL auto-check" in text
     assert "/status" in text
+
+def test_cmd_add_admin(monkeypatch):
+    added = []
+    monkeypatch.setattr(bot, "add_admin", lambda i: added.append(i))
+    upd = DummyUpdate()
+    upd.effective_user.id = int(bot.OWNER_ID or 1)
+    bot.OWNER_ID = "1"
+    bot.load_admins = lambda: ["1"]
+    bot.cmd_add_admin(upd, DummyContext(args=["2"]))
+    assert "Admin added" in upd.message.texts[0]
+    assert "2" in added
+
+def test_cmd_rm_admin(monkeypatch):
+    removed = []
+    monkeypatch.setattr(bot, "remove_admin", lambda i: removed.append(i))
+    upd = DummyUpdate()
+    upd.effective_user.id = int(bot.OWNER_ID or 1)
+    bot.OWNER_ID = "1"
+    bot.load_admins = lambda: ["1"]
+    bot.cmd_rm_admin(upd, DummyContext(args=["2"]))
+    assert "Admin removed" in upd.message.texts[0]
+    assert "2" in removed
+
+def test_cmd_admins(monkeypatch):
+    bot.load_admins = lambda: ["1", "2"]
+    upd = DummyUpdate()
+    bot.cmd_admins(upd, DummyContext(args=[]))
+    text = upd.message.texts[0]
+    assert "1" in text and "2" in text
+
+def test_add_rm_admin_invalid(monkeypatch):
+    upd = DummyUpdate()
+    upd.effective_user.id = int(bot.OWNER_ID or 1)
+    bot.OWNER_ID = "1"
+    bot.load_admins = lambda: ["1"]
+    bot.add_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
+    bot.cmd_add_admin(upd, DummyContext(args=["bad"]))
+    assert "Invalid ID" in upd.message.texts[0]
+
+    upd2 = DummyUpdate()
+    upd2.effective_user.id = int(bot.OWNER_ID or 1)
+    bot.remove_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
+    bot.cmd_rm_admin(upd2, DummyContext(args=["bad"]))
+    assert "Invalid ID" in upd2.message.texts[0]
+
+def test_cmd_help_ru(monkeypatch):
+    upd = DummyUpdate()
+    upd.effective_user.language_code = "ru"
+    bot.load_admins = lambda: ["1"]
+    bot.cmd_help(upd, DummyContext(args=[]))
+    assert "Команды" in upd.message.texts[0]
 
 
 def test_start_bot(monkeypatch):
