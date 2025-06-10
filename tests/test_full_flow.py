@@ -23,6 +23,7 @@ class DummyMessage:
 class DummyUpdate:
     def __init__(self):
         self.message = DummyMessage()
+        self.effective_user = SimpleNamespace(id=1, language_code="en")
 
 class DummyContext(SimpleNamespace):
     pass
@@ -30,6 +31,7 @@ class DummyContext(SimpleNamespace):
 def _call(func, args=None):
     upd = DummyUpdate()
     ctx = DummyContext(args=args or [])
+    bot.load_admins = lambda: ["1"]
     func(upd, ctx)
     return upd.message.texts[0]
 
@@ -54,7 +56,7 @@ def test_bot_command_flow(tmp_path, monkeypatch):
     text = _call(bot.cmd_status)
     assert "OK" in text
 
-    text = _call(bot.cmd_ssl_check)
+    text = _call(bot.cmd_checkssl)
     assert text == "SSL OK"
 
     monkeypatch.setattr(core, "site_is_up", lambda url: False)
@@ -79,10 +81,13 @@ def test_bot_command_flow(tmp_path, monkeypatch):
     core.check_sites()
     assert any(a.startswith("✅") for a in alerts)
 
-    text = _call(bot.cmd_remove, ["https://x.com"])
+    text = _call(bot.cmd_rem, ["https://x.com"])
     assert "Removed" in text
     text = _call(bot.cmd_list)
     assert "https://x.com" not in text
 
     text = _call(bot.cmd_start)
-    assert "3" in text
+    assert "Web monitoring bot" in text
+
+    text = _call(bot.cmd_admins)
+    assert "1" in text

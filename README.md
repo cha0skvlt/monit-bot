@@ -15,7 +15,8 @@ The bot keeps running because `updater.idle()` blocks the main thread.
 - Uptime alerts after 3 minutes of downtime
 - Multi-stage checks avoid DNS caching errors
 - Daily SSL certificate check
-- Manage URLs via Telegram `/status`, `/ssl`, `/list`, `/add`, `/remove`
+- Manage URLs via Telegram `/status`, `/checkssl`, `/list`, `/add`, `/rem`, `/help`
+- Admin control with `/admins`, `/add_admin` and `/rm_admin`
 - All data in a single SQLite file
 
 ## Quick start
