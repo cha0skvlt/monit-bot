@@ -124,7 +124,9 @@ def cmd_rem(update: Update, ctx: CallbackContext):
 
 @with_typing
 @admin_only
+
 def cmd_ssl_check(update: Update, ctx: CallbackContext):
+
     def run():
         result = check_ssl()
         update.message.reply_text(result, disable_web_page_preview=True)
@@ -183,9 +185,10 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
     if not ctx.args:
 
 
+
         update.message.reply_text("Usage: /add_admin <id>")
         return
-    add_admin(ctx.args[0])
+        "\n".join(admins) if admins else "No admins configured."
 
     update.message.reply_text("Admin added.")
 
@@ -201,7 +204,6 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
 
     remove_admin(ctx.args[0])
     update.message.reply_text("Admin removed.")
-
 
 
 def background_loop():

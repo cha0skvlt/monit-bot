@@ -192,7 +192,7 @@ def test_status_shows_down(monkeypatch):
     assert "DOWN" in text and "x" in text
 
 
-def test_cmd_ssl_check(monkeypatch):
+def test_cmd_checkssl(monkeypatch):
     monkeypatch.setattr(bot, "check_ssl", lambda: "SSL")
     class DummyThread:
         def __init__(self, target):
@@ -200,7 +200,9 @@ def test_cmd_ssl_check(monkeypatch):
         def start(self):
             self.target()
     monkeypatch.setattr(bot.threading, "Thread", DummyThread)
+
     upd = _call_cmd(bot.cmd_ssl_check)
+
     assert "SSL" in upd.message.texts[0]
 
 
@@ -210,8 +212,7 @@ def test_cmd_start():
     assert "SSL auto-check" in text
     assert "/status" in text
 
-def test_cmd_add_admin(monkeypatch):
-    added = []
+    assert upd.message.texts[0] == "1\n2"
     monkeypatch.setattr(bot, "add_admin", lambda i: added.append(i))
     upd = DummyUpdate()
     upd.effective_user.id = int(bot.OWNER_ID or 1)
@@ -231,6 +232,7 @@ def test_cmd_rm_admin(monkeypatch):
     bot.cmd_rm_admin(upd, DummyContext(args=["2"]))
     assert "Admin removed" in upd.message.texts[0]
     assert "2" in removed
+
 
 
 def test_cmd_help_ru(monkeypatch):

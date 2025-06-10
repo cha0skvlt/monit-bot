@@ -16,8 +16,6 @@ The bot keeps running because `updater.idle()` blocks the main thread.
 - Multi-stage checks avoid DNS caching errors
 - Daily SSL certificate check
 - Manage URLs via Telegram `/status`, `/ssl`, `/list`, `/add`, `/rem`, `/help`
-
-
 - All data in a single SQLite file
 
 ## Quick start
