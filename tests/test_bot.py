@@ -232,6 +232,7 @@ def test_cmd_rm_admin(monkeypatch):
     assert "Admin removed" in upd.message.texts[0]
     assert "2" in removed
 
+
 def test_cmd_help_ru(monkeypatch):
     upd = DummyUpdate()
     upd.effective_user.language_code = "ru"

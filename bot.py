@@ -144,6 +144,7 @@ def help_text(lang: str) -> str:
             "/list — список URL\n"
             "/add — добавить сайт\n"
             "/rem — удалить сайт"
+
         )
     return (
         "🤖 Web monitoring bot:\n\n"
@@ -169,13 +170,16 @@ def cmd_help(update: Update, ctx: CallbackContext):
 def cmd_start(update: Update, ctx: CallbackContext):
     cmd_help(update, ctx)
 
+
 @with_typing
 @admin_only
 def cmd_add_admin(update: Update, ctx: CallbackContext):
+
     if str(update.effective_user.id) != (OWNER_ID or ""):
         update.message.reply_text("Access denied.")
         return
     if not ctx.args:
+
         update.message.reply_text("Usage: /add_admin <id>")
         return
     add_admin(ctx.args[0])
@@ -192,6 +196,7 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
         return
     remove_admin(ctx.args[0])
     update.message.reply_text("Admin removed.")
+
 
 
 def background_loop():
