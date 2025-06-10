@@ -212,8 +212,7 @@ def test_cmd_start():
     assert "SSL auto-check" in text
     assert "/status" in text
 
-def test_cmd_add_admin(monkeypatch):
-    added = []
+    assert upd.message.texts[0] == "1\n2"
     monkeypatch.setattr(bot, "add_admin", lambda i: added.append(i))
     upd = DummyUpdate()
     upd.effective_user.id = int(bot.OWNER_ID or 1)

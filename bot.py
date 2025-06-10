@@ -188,7 +188,7 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
 
         update.message.reply_text("Usage: /add_admin <id>")
         return
-    add_admin(ctx.args[0])
+        "\n".join(admins) if admins else "No admins configured."
 
     update.message.reply_text("Admin added.")
 
