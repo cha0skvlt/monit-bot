@@ -171,18 +171,22 @@ def cmd_start(update: Update, ctx: CallbackContext):
     cmd_help(update, ctx)
 
 
+
 @with_typing
 @admin_only
 def cmd_add_admin(update: Update, ctx: CallbackContext):
+
 
     if str(update.effective_user.id) != (OWNER_ID or ""):
         update.message.reply_text("Access denied.")
         return
     if not ctx.args:
 
+
         update.message.reply_text("Usage: /add_admin <id>")
         return
     add_admin(ctx.args[0])
+
     update.message.reply_text("Admin added.")
 
 @with_typing
@@ -194,6 +198,7 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
     if not ctx.args:
         update.message.reply_text("Usage: /rm_admin <id>")
         return
+
     remove_admin(ctx.args[0])
     update.message.reply_text("Admin removed.")
 
