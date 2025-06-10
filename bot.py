@@ -143,10 +143,8 @@ def help_text(lang: str) -> str:
             "/ssl — проверка SSL\n"
             "/list — список URL\n"
             "/add — добавить сайт\n"
-            "/rem — удалить сайт\n"
-            "/admins — список админов\n"
-            "/add_admin — добавить админа\n"
-            "/rm_admin — удалить админа"
+            "/rem — удалить сайт"
+
         )
     return (
         "🤖 Web monitoring bot:\n\n"
@@ -158,11 +156,9 @@ def help_text(lang: str) -> str:
         "/ssl     — manual SSL check\n"
         "/list    — list of monitored URLs\n"
         "/add     — add site\n"
-        "/rem     — remove site\n"
-        "/admins  — list admins\n"
-        "/add_admin — add admin\n"
-        "/rm_admin  — remove admin"
+        "/rem     — remove site"
     )
+
 @with_typing
 @admin_only
 def cmd_help(update: Update, ctx: CallbackContext):
@@ -174,21 +170,19 @@ def cmd_help(update: Update, ctx: CallbackContext):
 def cmd_start(update: Update, ctx: CallbackContext):
     cmd_help(update, ctx)
 
+
 @with_typing
 @admin_only
 def cmd_add_admin(update: Update, ctx: CallbackContext):
+
     if str(update.effective_user.id) != (OWNER_ID or ""):
         update.message.reply_text("Access denied.")
         return
     if not ctx.args:
+
         update.message.reply_text("Usage: /add_admin <id>")
         return
-    try:
-        admin_id = str(int(ctx.args[0]))
-    except ValueError:
-        update.message.reply_text("Invalid ID.")
-        return
-    add_admin(admin_id)
+    add_admin(ctx.args[0])
     update.message.reply_text("Admin added.")
 
 @with_typing
@@ -200,21 +194,9 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
     if not ctx.args:
         update.message.reply_text("Usage: /rm_admin <id>")
         return
-    try:
-        admin_id = str(int(ctx.args[0]))
-    except ValueError:
-        update.message.reply_text("Invalid ID.")
-        return
-    remove_admin(admin_id)
+    remove_admin(ctx.args[0])
     update.message.reply_text("Admin removed.")
 
-@with_typing
-@admin_only
-def cmd_admins(update: Update, ctx: CallbackContext):
-    admins = load_admins()
-    update.message.reply_text(
-        "Admins: " + ", ".join(admins) if admins else "No admins configured."
-    )
 
 
 def background_loop():
@@ -239,7 +221,6 @@ def start_bot():
     dp.add_handler(CommandHandler("help", cmd_help))
     dp.add_handler(CommandHandler("add_admin", cmd_add_admin))
     dp.add_handler(CommandHandler("rm_admin", cmd_rm_admin))
-    dp.add_handler(CommandHandler("admins", cmd_admins))
     dp.add_handler(CommandHandler("start", cmd_start))
     updater.start_polling()
     updater.idle()

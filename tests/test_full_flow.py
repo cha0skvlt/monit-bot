@@ -89,5 +89,3 @@ def test_bot_command_flow(tmp_path, monkeypatch):
     text = _call(bot.cmd_start)
     assert "Web monitoring bot" in text
 
-    text = _call(bot.cmd_admins)
-    assert "1" in text
