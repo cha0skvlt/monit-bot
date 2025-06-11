@@ -1,5 +1,7 @@
 # 🤖 Web Monitor Bot
 
+### V 2.0
+
 Telegram bot that checks website uptime and SSL expiration. Designed for Docker, it
 stores data in SQLite and writes structured logs.
 
@@ -19,9 +21,11 @@ stores data in SQLite and writes structured logs.
 
 ## Quick start
 
-1. Clone the repo and copy `.env.example` to `.env`.
-2. Set `BOT_TOKEN`, `CHAT_ID`, `ADMIN_IDS` and `OWNER_ID`.
-3. Build and run the container:
+
+1. Clone this repository.
+2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
+3. Build and start the container:
+
 
    ```bash
    docker compose up --build -d

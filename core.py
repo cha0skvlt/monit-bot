@@ -181,15 +181,29 @@ def is_valid_url(url: str) -> bool:
 
 def site_is_up(url: str) -> bool:
     headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
-    for attempt in range(3):
+
+    try:
+        r = requests.head(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
+        if r.status_code == 200:
+            return True
+    except Exception:
+        pass
+
+    for i in range(3):
         try:
-            r = requests.get(
-                url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers
-            )
-            return r.status_code == 200
+            r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
+
+            if r.status_code == 200:
+                return True
+            break
         except Exception:
-            if attempt < 2:
+
+            if i < 2:
                 time.sleep(1)
+            else:
+                pass
+
+
     parsed = urlparse(url)
     host = parsed.hostname
     if not host:
@@ -244,11 +258,15 @@ def check_sites():
         if ok:
             log_event({"type": "site_check", "site": site, "status": "up", "available": 1})
             prev = status.get(site)
-            if not prev:
-                status[site] = {"down_since": None}
-            elif prev.get("down_since"):
+
+
+            if prev and prev.get("down_since"):
                 send_alert(f"✅ {site} is back online", disable_web_page_preview=True)
                 prev["down_since"] = None
+            else:
+                status[site] = {"down_since": None}
+
+
         else:
             if site not in status or status[site]["down_since"] is None:
                 status[site] = {"down_since": now.isoformat()}
