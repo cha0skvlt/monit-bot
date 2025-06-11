@@ -56,7 +56,7 @@ def test_bot_command_flow(tmp_path, monkeypatch):
     text = _call(bot.cmd_status)
     assert "OK" in text
 
-    text = _call(bot.cmd_checkssl)
+    text = _call(bot.cmd_ssl_check)
     assert text == "SSL OK"
 
     monkeypatch.setattr(core, "site_is_up", lambda url: False)
