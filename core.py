@@ -181,15 +181,7 @@ def is_valid_url(url: str) -> bool:
 
 def site_is_up(url: str) -> bool:
     headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
-    try:
-        r = requests.head(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
-        if r.status_code == 200:
-            return True
-    except Exception:
-        pass
-
-    for i in range(3):
-        try:
+            return r.status_code == 200
             r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
 
             if r.status_code == 200:
