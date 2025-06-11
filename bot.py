@@ -157,11 +157,10 @@ def help_text(lang: str) -> str:
             "/ssl — проверка SSL\n"
             "/list — список URL\n"
             "/add — добавить сайт\n"
-        "/rem — удалить сайт\n"
-        "/add_admin — добавить администратора\n"
-        "/rm_admin — убрать администратора\n"
-        "/confirm — подтвердить удаление"
-
+            "/rem — удалить сайт\n"
+            "/add_admin — добавить администратора\n"
+            "/rm_admin — убрать администратора"
+          
         )
     return (
         "🤖 Web monitoring bot:\n\n"
@@ -175,8 +174,8 @@ def help_text(lang: str) -> str:
         "/add     — add site\n"
         "/rem     — remove site\n"
         "/add_admin — add admin\n"
-        "/rm_admin  — remove admin\n"
-        "/confirm  — confirm deletion"
+        "/rm_admin  — remove admin"
+
     )
 
 @with_typing
@@ -200,27 +199,30 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
     if not user_id:
         update.message.reply_text("⚠️ Usage: /add_admin <user_id>")
         return
+
+    if not ctx.args:
+        update.message.reply_text("Usage: /add_admin <id>")
+        return
     try:
-        int(user_id)
+        admin_id = str(int(ctx.args[0]))
     except ValueError:
         update.message.reply_text("Invalid ID format")
         return
-    add_admin(user_id)
-    log_event({
-        "type": "user_action",
-        "command": "/add_admin",
-        "user_id": str(update.effective_user.id),
-        "target": user_id,
-    })
-    update.message.reply_text(f"✅ Admin {user_id} added.")
+    add_admin(admin_id)
+    update.message.reply_text("Admin added.")
+
+
+
 
 @with_typing
 @owner_only
 def cmd_rm_admin(update: Update, ctx: CallbackContext):
-    """Removes an admin by user ID."""
-    user_id = ctx.args[0] if ctx.args else None
-    if not user_id:
-        update.message.reply_text("⚠️ Usage: /rm_admin <user_id>")
+
+
+    if str(update.effective_user.id) != (OWNER_ID or ""):
+        update.message.reply_text("Access denied.")
+
+
         return
     try:
         int(user_id)
@@ -231,47 +233,15 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
     update.message.reply_text("Are you sure? Reply /confirm to proceed.")
 
 
-@with_typing
-@admin_only
-def cmd_confirm(update: Update, ctx: CallbackContext):
-    entry = PENDING.pop(str(update.effective_user.id), None)
-    if not entry:
-        update.message.reply_text("Nothing to confirm.")
+
+    try:
+        admin_id = str(int(ctx.args[0]))
+    except ValueError:
+        update.message.reply_text("Invalid ID format")
         return
-    action, value = entry
-    if action == "rem":
-        site = value
-        sites = load_sites()
-        if site not in sites:
-            update.message.reply_text(
-                "Site not found.", disable_web_page_preview=True
-            )
-            return
-        sites.remove(site)
-        save_sites(sites)
-        status = load_status()
-        status.pop(site, None)
-        save_status(status)
-        log_event(
-            {
-                "type": "user_action",
-                "command": "/rem",
-                "user_id": str(update.effective_user.id),
-                "target": site,
-            }
-        )
-        update.message.reply_text("❌ Removed.", disable_web_page_preview=True)
-    elif action == "rm_admin":
-        remove_admin(value)
-        log_event(
-            {
-                "type": "user_action",
-                "command": "/rm_admin",
-                "user_id": str(update.effective_user.id),
-                "target": value,
-            }
-        )
-        update.message.reply_text(f"❌ Admin {value} removed.")
+    remove_admin(admin_id)
+    update.message.reply_text("Admin removed.")
+
 
 
 def background_loop():
@@ -292,7 +262,6 @@ def start_bot():
     dp.add_handler(CommandHandler("list", cmd_list))
     dp.add_handler(CommandHandler("add", cmd_add))
     dp.add_handler(CommandHandler("rem", cmd_remove))
-    dp.add_handler(CommandHandler("confirm", cmd_confirm))
     dp.add_handler(CommandHandler("ssl", cmd_ssl_check))
     dp.add_handler(CommandHandler("help", cmd_help))
     dp.add_handler(CommandHandler("add_admin", cmd_add_admin))

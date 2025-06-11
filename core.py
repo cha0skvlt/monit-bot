@@ -240,11 +240,12 @@ def check_sites():
         if ok:
             log_event({"type": "site_check", "site": site, "status": "up", "available": 1})
             prev = status.get(site)
-            if not prev:
-                status[site] = {"down_since": None}
-            elif prev.get("down_since"):
+            if prev and prev.get("down_since"):
                 send_alert(f"✅ {site} is back online", disable_web_page_preview=True)
                 prev["down_since"] = None
+            else:
+                status[site] = {"down_since": None}
+
         else:
             if site not in status or status[site]["down_since"] is None:
                 status[site] = {"down_since": now.isoformat()}
