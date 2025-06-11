@@ -180,12 +180,17 @@ def site_is_up(url: str) -> bool:
             return True
     except Exception:
         pass
-    try:
-        r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
-        if r.status_code == 200:
-            return True
-    except Exception:
-        pass
+    for i in range(3):
+        try:
+            r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
+            if r.status_code == 200:
+                return True
+            break
+        except Exception:
+            if i < 2:
+                time.sleep(1)
+            else:
+                pass
     parsed = urlparse(url)
     host = parsed.hostname
     if not host:
