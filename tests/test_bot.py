@@ -145,7 +145,7 @@ def test_cmd_add_invalid(monkeypatch):
     assert "Invalid URL" in upd.message.texts[0]
 
 
-def test_cmd_rem(monkeypatch):
+def test_cmd_remove(monkeypatch):
     sites = ["x"]
     status = {"x": {"down_since": None}}
     monkeypatch.setattr(bot, "load_sites", lambda: sites)
@@ -156,7 +156,7 @@ def test_cmd_rem(monkeypatch):
         status.clear(); status.update(d)
     monkeypatch.setattr(bot, "save_sites", fake_save_sites)
     monkeypatch.setattr(bot, "save_status", fake_save_status)
-    upd = _call_cmd(bot.cmd_rem, ["x"])
+    upd = _call_cmd(bot.cmd_remove, ["x"])
     assert "Removed" in upd.message.texts[0]
     assert sites == [] and status == {}
 
@@ -212,6 +212,7 @@ def test_cmd_start():
     assert "SSL auto-check" in text
     assert "/status" in text
 
+
 def test_cmd_rm_admin(monkeypatch):
     removed = []
     monkeypatch.setattr(bot, "remove_admin", lambda i: removed.append(i))
@@ -220,7 +221,7 @@ def test_cmd_rm_admin(monkeypatch):
     bot.OWNER_ID = "1"
     bot.load_admins = lambda: ["1"]
     bot.cmd_rm_admin(upd, DummyContext(args=["2"]))
-    assert "Admin removed" in upd.message.texts[0]
+    assert "❌ Admin 2 removed." == upd.message.texts[0]
     assert "2" in removed
 
 
@@ -229,6 +230,7 @@ def test_admin_cmd_invalid(monkeypatch):
     upd.effective_user.id = int(bot.OWNER_ID or 1)
     bot.OWNER_ID = "1"
     bot.load_admins = lambda: ["1"]
+
     bot.add_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
     bot.cmd_add_admin(upd, DummyContext(args=["bad"]))
     assert "Invalid ID format" in upd.message.texts[0]
@@ -238,6 +240,7 @@ def test_admin_cmd_invalid(monkeypatch):
     bot.remove_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
     bot.cmd_rm_admin(upd2, DummyContext(args=["bad"]))
     assert "Invalid ID format" in upd2.message.texts[0]
+
 
 
 

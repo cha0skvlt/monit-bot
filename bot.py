@@ -100,7 +100,7 @@ def cmd_add(update: Update, ctx: CallbackContext):
 
 @with_typing
 @admin_only
-def cmd_rem(update: Update, ctx: CallbackContext):
+def cmd_remove(update: Update, ctx: CallbackContext):
     if not ctx.args:
         update.message.reply_text(
             "Usage: /rem https://example.com",
@@ -145,7 +145,9 @@ def help_text(lang: str) -> str:
             "/ssl — проверка SSL\n"
             "/list — список URL\n"
             "/add — добавить сайт\n"
-            "/rem — удалить сайт"
+            "/rem — удалить сайт\n"
+            "/add_admin — добавить администратора\n"
+            "/rm_admin — убрать администратора"
 
         )
     return (
@@ -158,7 +160,9 @@ def help_text(lang: str) -> str:
         "/ssl     — manual SSL check\n"
         "/list    — list of monitored URLs\n"
         "/add     — add site\n"
-        "/rem     — remove site"
+        "/rem     — remove site\n"
+        "/add_admin — add admin\n"
+        "/rm_admin  — remove admin"
     )
 
 @with_typing
@@ -177,6 +181,7 @@ def cmd_start(update: Update, ctx: CallbackContext):
 @with_typing
 @admin_only
 def cmd_add_admin(update: Update, ctx: CallbackContext):
+
     if str(update.effective_user.id) != (OWNER_ID or ""):
         update.message.reply_text("Access denied.")
         return
@@ -191,9 +196,11 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
     add_admin(admin_id)
     update.message.reply_text("Admin added.")
 
+
 @with_typing
 @admin_only
 def cmd_rm_admin(update: Update, ctx: CallbackContext):
+
     if str(update.effective_user.id) != (OWNER_ID or ""):
         update.message.reply_text("Access denied.")
         return
@@ -207,6 +214,7 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
         return
     remove_admin(admin_id)
     update.message.reply_text("Admin removed.")
+
 
 
 def background_loop():
@@ -226,7 +234,7 @@ def start_bot():
     dp.add_handler(CommandHandler("status", cmd_status))
     dp.add_handler(CommandHandler("list", cmd_list))
     dp.add_handler(CommandHandler("add", cmd_add))
-    dp.add_handler(CommandHandler("rem", cmd_rem))
+    dp.add_handler(CommandHandler("rem", cmd_remove))
     dp.add_handler(CommandHandler("ssl", cmd_ssl_check))
     dp.add_handler(CommandHandler("help", cmd_help))
     dp.add_handler(CommandHandler("add_admin", cmd_add_admin))
