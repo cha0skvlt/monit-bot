@@ -24,7 +24,7 @@ from core import (
 )
 
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.environ["BOT_TOKEN"]
 PENDING = {}
 
 def with_typing(func):
@@ -37,6 +37,14 @@ def admin_only(func):
     def wrapper(update: Update, ctx: CallbackContext):
         user_id = str(update.effective_user.id)
         if user_id not in load_admins():
+            update.message.reply_text("Access denied.")
+            return
+        return func(update, ctx)
+    return wrapper
+
+def owner_only(func):
+    def wrapper(update: Update, ctx: CallbackContext):
+        if str(update.effective_user.id) != (OWNER_ID or ""):
             update.message.reply_text("Access denied.")
             return
         return func(update, ctx)
@@ -152,7 +160,7 @@ def help_text(lang: str) -> str:
             "/rem — удалить сайт\n"
             "/add_admin — добавить администратора\n"
             "/rm_admin — убрать администратора"
-
+          
         )
     return (
         "🤖 Web monitoring bot:\n\n"
@@ -167,6 +175,7 @@ def help_text(lang: str) -> str:
         "/rem     — remove site\n"
         "/add_admin — add admin\n"
         "/rm_admin  — remove admin"
+
     )
 
 @with_typing
@@ -183,13 +192,14 @@ def cmd_start(update: Update, ctx: CallbackContext):
 
 
 @with_typing
-@admin_only
+@owner_only
 def cmd_add_admin(update: Update, ctx: CallbackContext):
-
-
-    if str(update.effective_user.id) != (OWNER_ID or ""):
-        update.message.reply_text("Access denied.")
+    """Adds a new admin by user ID."""
+    user_id = ctx.args[0] if ctx.args else None
+    if not user_id:
+        update.message.reply_text("⚠️ Usage: /add_admin <user_id>")
         return
+
     if not ctx.args:
         update.message.reply_text("Usage: /add_admin <id>")
         return
@@ -203,12 +213,15 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
 
 
 
+
 @with_typing
-@admin_only
+@owner_only
 def cmd_rm_admin(update: Update, ctx: CallbackContext):
+
 
     if str(update.effective_user.id) != (OWNER_ID or ""):
         update.message.reply_text("Access denied.")
+
 
         return
     try:
@@ -216,6 +229,10 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
     except ValueError:
         update.message.reply_text("Invalid ID format")
         return
+    PENDING[str(update.effective_user.id)] = ("rm_admin", user_id)
+    update.message.reply_text("Are you sure? Reply /confirm to proceed.")
+
+
 
     try:
         admin_id = str(int(ctx.args[0]))
@@ -224,6 +241,7 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
         return
     remove_admin(admin_id)
     update.message.reply_text("Admin removed.")
+
 
 
 def background_loop():

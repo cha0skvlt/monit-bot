@@ -7,6 +7,7 @@ from logging import handlers
 import os
 import socket
 import ssl
+import re
 import sqlite3
 import threading
 import time
@@ -19,7 +20,7 @@ from dotenv import load_dotenv
 from telegram import Bot
 
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.getenv("CHAT_ID")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
 OWNER_ID = os.getenv("OWNER_ID")
@@ -36,6 +37,10 @@ REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))
 
 LEGACY_SITES_FILE = Path("/app/sites.txt")
 LEGACY_STATUS_FILE = Path("/app/status.json")
+
+URL_RE = re.compile(
+    r"^https?://(?:[A-Za-z0-9-]+\.)+[A-Za-z0-9-]+(?:[:/].*)?$"
+)
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 handler = logging.handlers.RotatingFileHandler(
@@ -169,8 +174,10 @@ def remove_admin(admin_id: str):
         conn.commit()
 
 def is_valid_url(url: str) -> bool:
+    if not url or not URL_RE.match(url):
+        return False
     p = urlparse(url)
-    return p.scheme in {"http", "https"} and bool(p.netloc)
+    return p.scheme in {"http", "https"} and bool(p.hostname)
 
 def site_is_up(url: str) -> bool:
     headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
@@ -180,12 +187,17 @@ def site_is_up(url: str) -> bool:
             return True
     except Exception:
         pass
-    try:
-        r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
-        if r.status_code == 200:
-            return True
-    except Exception:
-        pass
+    for i in range(3):
+        try:
+            r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
+            if r.status_code == 200:
+                return True
+            break
+        except Exception:
+            if i < 2:
+                time.sleep(1)
+            else:
+                pass
     parsed = urlparse(url)
     host = parsed.hostname
     if not host:
@@ -245,6 +257,7 @@ def check_sites():
                 prev["down_since"] = None
             else:
                 status[site] = {"down_since": None}
+
         else:
             if site not in status or status[site]["down_since"] is None:
                 status[site] = {"down_since": now.isoformat()}
