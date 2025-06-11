@@ -1,8 +1,7 @@
 # 🤖 Web Monitor Bot
 
-Minimal Telegram bot that checks your sites every minute and warns about expiring SSL certificates.
-Runs in Docker, stores data in SQLite and logs in JSON.
-The bot keeps running because `updater.idle()` blocks the main thread.
+Telegram bot that checks website uptime and SSL expiration. Designed for Docker, it
+stores data in SQLite and writes structured logs.
 
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)
@@ -12,11 +11,11 @@ The bot keeps running because `updater.idle()` blocks the main thread.
 
 ## Features
 
-- Uptime alerts after 3 minutes of downtime
-- Multi-stage checks avoid DNS caching errors
-- Daily SSL certificate check
-- Manage URLs via Telegram `/status`, `/ssl`, `/list`, `/add`, `/rem`, `/help`
-- All data in a single SQLite file
+- Periodic uptime checks with retry logic
+- Daily SSL certificate monitoring
+- Admin commands for managing sites and admins
+- Stores data and logs in SQLite
+- Docker setup with healthcheck
 
 ## Quick start
 
@@ -24,25 +23,29 @@ The bot keeps running because `updater.idle()` blocks the main thread.
 2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
 3. Build and start the container:
 
-    ```bash
-    docker compose up --build -d
-    ```
 
-    The container creates the SQLite database on first run. Optional variables
-    `DB_FILE`, `LOG_FILE` and `REQUEST_TIMEOUT` tune paths and request timeout.
-    If `DB_FILE` is a directory or a non-existent path without extension, the
-    file `db.sqlite` will be created inside it. A plain filename will place the
-    database in the current working directory.
+   ```bash
+   docker compose up --build -d
+   ```
 
-    If `DB_FILE` points to a directory, the file `db.sqlite` will be created
-    inside it.
+Optional variables `DB_FILE`, `LOG_FILE` and `REQUEST_TIMEOUT` change paths and
+timeouts. If `DB_FILE` is a directory, the bot creates `db.sqlite` inside it.
 
+## Usage
 
+Interact with the bot via Telegram:
 
-## Документация на русском
+- `/add <url>` – start monitoring
+- `/rem <url>` – stop monitoring
+- `/status` – current status
+- `/checkssl` – check SSL now
+- `/list` – list sites
+- `/add_admin <id>` – grant admin rights
+- `/rm_admin <id>` – revoke admin rights
+- `/help` – show help
 
-Более подробное руководство по настройке и работе проекта находится в файле
-[`docs/guide_ru.md`](docs/guide_ru.md).
+## Русская версия
 
+See [`docs/guide_ru.md`](docs/guide_ru.md) for the Russian manual.
 
-Made by [@cha0skvlt](https://github.com/cha0skvlt). Star the repo if it helps you!
+Made by [@cha0skvlt](https://github.com/cha0skvlt). Star the repo!

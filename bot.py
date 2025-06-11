@@ -200,6 +200,7 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
         update.message.reply_text("⚠️ Usage: /add_admin <user_id>")
         return
 
+
     if not ctx.args:
         update.message.reply_text("Usage: /add_admin <id>")
         return
@@ -213,10 +214,10 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
 
 
 
-
 @with_typing
 @owner_only
 def cmd_rm_admin(update: Update, ctx: CallbackContext):
+
 
 
     if str(update.effective_user.id) != (OWNER_ID or ""):
@@ -233,7 +234,6 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
     update.message.reply_text("Are you sure? Reply /confirm to proceed.")
 
 
-
     try:
         admin_id = str(int(ctx.args[0]))
     except ValueError:
@@ -241,6 +241,7 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
         return
     remove_admin(admin_id)
     update.message.reply_text("Admin removed.")
+
 
 
 

@@ -187,17 +187,21 @@ def site_is_up(url: str) -> bool:
             return True
     except Exception:
         pass
+
     for i in range(3):
         try:
             r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
+
             if r.status_code == 200:
                 return True
             break
         except Exception:
+
             if i < 2:
                 time.sleep(1)
             else:
                 pass
+
     parsed = urlparse(url)
     host = parsed.hostname
     if not host:
@@ -252,6 +256,7 @@ def check_sites():
         if ok:
             log_event({"type": "site_check", "site": site, "status": "up", "available": 1})
             prev = status.get(site)
+
             if prev and prev.get("down_since"):
                 send_alert(f"✅ {site} is back online", disable_web_page_preview=True)
                 prev["down_since"] = None
