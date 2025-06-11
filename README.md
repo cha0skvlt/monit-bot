@@ -13,26 +13,32 @@ stores data in SQLite and writes structured logs.
 
 ## Features
 
-- Periodic uptime checks with retry logic
-- Daily SSL certificate monitoring
-- Admin commands for managing sites and admins
-- Stores data and logs in SQLite
-- Docker setup with healthcheck
+- 🔁 Pings websites every 3 minutes to check availability
+- 🕵️ SSL certificate check runs daily at 06:00 UTC
+- 🚨 Alerts when a site goes down or recovers
+- ⏳ Warnings 7 days before SSL certificates expire
+- 📋 Telegram-based command interface
+- 🗃️ SQLite for persistence
+- 🐳 Docker-ready deployment
 
-## Quick start
+---
 
+## 📦 Installation
 
-1. Clone this repository.
-2. Copy `.env.example` to `.env` and fill in `BOT_TOKEN` and `CHAT_ID`.
-3. Build and start the container:
+```bash
+git clone https://github.com/yourname/monit-bot.git
+cd monit-bot
+cp .env.example .env  # or create one manually
+docker compose up -d
+```
 
+```.env
+BOT_TOKEN=your_telegram_bot_token
+CHAT_ID=group_or_user_chat_ID
+OWNER_ID=this_ID_can_manage_admins
+```
 
-   ```bash
-   docker compose up --build -d
-   ```
-
-Optional variables `DB_FILE`, `LOG_FILE` and `REQUEST_TIMEOUT` change paths and
-timeouts. If `DB_FILE` is a directory, the bot creates `db.sqlite` inside it.
+---
 
 ## Usage
 
@@ -43,8 +49,8 @@ Interact with the bot via Telegram:
 - `/status` – current status
 - `/checkssl` – check SSL now
 - `/list` – list sites
-- `/add_admin <id>` – grant admin rights
-- `/rm_admin <id>` – revoke admin rights
+- `/add_admin <id>` – grant admin rights (Owner only)
+- `/rm_admin <id>` – revoke admin rights (Owner only
 - `/help` – show help
 
 ## Русская версия
