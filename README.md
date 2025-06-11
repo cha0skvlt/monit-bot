@@ -51,5 +51,5 @@ Interact with the bot via Telegram:
 
 See [`docs/guide_ru.md`](docs/guide_ru.md) for the Russian manual.
 
-## Made by [@cha0skvlt](https://github.com/cha0skvlt). 
+## Made by [@cha0skvlt](https://github.com/cha0skvlt)
 
