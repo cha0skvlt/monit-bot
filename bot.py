@@ -24,7 +24,7 @@ from core import (
 )
 
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.environ["BOT_TOKEN"]
 PENDING = {}
 
 def with_typing(func):

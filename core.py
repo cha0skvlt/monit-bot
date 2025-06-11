@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from telegram import Bot
 
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.getenv("CHAT_ID")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
 OWNER_ID = os.getenv("OWNER_ID")
