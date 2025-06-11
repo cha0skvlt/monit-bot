@@ -56,7 +56,7 @@ def test_bot_command_flow(tmp_path, monkeypatch):
     text = _call(bot.cmd_status)
     assert "OK" in text
 
-    text = _call(bot.cmd_checkssl)
+    text = _call(bot.cmd_ssl_check)
     assert text == "SSL OK"
 
     monkeypatch.setattr(core, "site_is_up", lambda url: False)
@@ -81,7 +81,10 @@ def test_bot_command_flow(tmp_path, monkeypatch):
     core.check_sites()
     assert any(a.startswith("✅") for a in alerts)
 
-    text = _call(bot.cmd_rem, ["https://x.com"])
+    bot.PENDING.clear()
+    text = _call(bot.cmd_remove, ["https://x.com"])
+    assert "Are you sure" in text
+    text = _call(bot.cmd_confirm)
     assert "Removed" in text
     text = _call(bot.cmd_list)
     assert "https://x.com" not in text

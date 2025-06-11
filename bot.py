@@ -19,11 +19,13 @@ from core import (
     load_admins,
     add_admin,
     remove_admin,
+    log_event,
     OWNER_ID,
 )
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
+PENDING = {}
 
 def with_typing(func):
     def wrapper(update: Update, context: CallbackContext):
@@ -93,6 +95,12 @@ def cmd_add(update: Update, ctx: CallbackContext):
     else:
         sites.append(site)
         save_sites(sites)
+        log_event({
+            "type": "user_action",
+            "command": "/add",
+            "user_id": str(update.effective_user.id),
+            "target": site,
+        })
         update.message.reply_text(
             "✅ Added.",
             disable_web_page_preview=True,
@@ -100,7 +108,7 @@ def cmd_add(update: Update, ctx: CallbackContext):
 
 @with_typing
 @admin_only
-def cmd_rem(update: Update, ctx: CallbackContext):
+def cmd_remove(update: Update, ctx: CallbackContext):
     if not ctx.args:
         update.message.reply_text(
             "Usage: /rem https://example.com",
@@ -115,12 +123,8 @@ def cmd_rem(update: Update, ctx: CallbackContext):
             disable_web_page_preview=True,
         )
     else:
-        sites.remove(site)
-        save_sites(sites)
-        status = load_status()
-        status.pop(site, None)
-        save_status(status)
-        update.message.reply_text("❌ Removed.", disable_web_page_preview=True)
+        PENDING[str(update.effective_user.id)] = ("rem", site)
+        update.message.reply_text("Are you sure? Reply /confirm to proceed.")
 
 @with_typing
 @admin_only
@@ -145,7 +149,10 @@ def help_text(lang: str) -> str:
             "/ssl — проверка SSL\n"
             "/list — список URL\n"
             "/add — добавить сайт\n"
-            "/rem — удалить сайт"
+        "/rem — удалить сайт\n"
+        "/add_admin — добавить администратора\n"
+        "/rm_admin — убрать администратора\n"
+        "/confirm — подтвердить удаление"
 
         )
     return (
@@ -158,7 +165,10 @@ def help_text(lang: str) -> str:
         "/ssl     — manual SSL check\n"
         "/list    — list of monitored URLs\n"
         "/add     — add site\n"
-        "/rem     — remove site"
+        "/rem     — remove site\n"
+        "/add_admin — add admin\n"
+        "/rm_admin  — remove admin\n"
+        "/confirm  — confirm deletion"
     )
 
 @with_typing
@@ -177,33 +187,83 @@ def cmd_start(update: Update, ctx: CallbackContext):
 @with_typing
 @admin_only
 def cmd_add_admin(update: Update, ctx: CallbackContext):
-
-
-    if str(update.effective_user.id) != (OWNER_ID or ""):
-        update.message.reply_text("Access denied.")
+    """Adds a new admin by user ID."""
+    user_id = ctx.args[0] if ctx.args else None
+    if not user_id:
+        update.message.reply_text("⚠️ Usage: /add_admin <user_id>")
         return
-    if not ctx.args:
-
-
-
-        update.message.reply_text("Usage: /add_admin <id>")
+    try:
+        int(user_id)
+    except ValueError:
+        update.message.reply_text("Invalid ID format")
         return
-        "\n".join(admins) if admins else "No admins configured."
-
-    update.message.reply_text("Admin added.")
+    add_admin(user_id)
+    log_event({
+        "type": "user_action",
+        "command": "/add_admin",
+        "user_id": str(update.effective_user.id),
+        "target": user_id,
+    })
+    update.message.reply_text(f"✅ Admin {user_id} added.")
 
 @with_typing
 @admin_only
 def cmd_rm_admin(update: Update, ctx: CallbackContext):
-    if str(update.effective_user.id) != (OWNER_ID or ""):
-        update.message.reply_text("Access denied.")
+    """Removes an admin by user ID."""
+    user_id = ctx.args[0] if ctx.args else None
+    if not user_id:
+        update.message.reply_text("⚠️ Usage: /rm_admin <user_id>")
         return
-    if not ctx.args:
-        update.message.reply_text("Usage: /rm_admin <id>")
+    try:
+        int(user_id)
+    except ValueError:
+        update.message.reply_text("Invalid ID format")
         return
+    PENDING[str(update.effective_user.id)] = ("rm_admin", user_id)
+    update.message.reply_text("Are you sure? Reply /confirm to proceed.")
 
-    remove_admin(ctx.args[0])
-    update.message.reply_text("Admin removed.")
+
+@with_typing
+@admin_only
+def cmd_confirm(update: Update, ctx: CallbackContext):
+    entry = PENDING.pop(str(update.effective_user.id), None)
+    if not entry:
+        update.message.reply_text("Nothing to confirm.")
+        return
+    action, value = entry
+    if action == "rem":
+        site = value
+        sites = load_sites()
+        if site not in sites:
+            update.message.reply_text(
+                "Site not found.", disable_web_page_preview=True
+            )
+            return
+        sites.remove(site)
+        save_sites(sites)
+        status = load_status()
+        status.pop(site, None)
+        save_status(status)
+        log_event(
+            {
+                "type": "user_action",
+                "command": "/rem",
+                "user_id": str(update.effective_user.id),
+                "target": site,
+            }
+        )
+        update.message.reply_text("❌ Removed.", disable_web_page_preview=True)
+    elif action == "rm_admin":
+        remove_admin(value)
+        log_event(
+            {
+                "type": "user_action",
+                "command": "/rm_admin",
+                "user_id": str(update.effective_user.id),
+                "target": value,
+            }
+        )
+        update.message.reply_text(f"❌ Admin {value} removed.")
 
 
 def background_loop():
@@ -223,7 +283,8 @@ def start_bot():
     dp.add_handler(CommandHandler("status", cmd_status))
     dp.add_handler(CommandHandler("list", cmd_list))
     dp.add_handler(CommandHandler("add", cmd_add))
-    dp.add_handler(CommandHandler("rem", cmd_rem))
+    dp.add_handler(CommandHandler("rem", cmd_remove))
+    dp.add_handler(CommandHandler("confirm", cmd_confirm))
     dp.add_handler(CommandHandler("ssl", cmd_ssl_check))
     dp.add_handler(CommandHandler("help", cmd_help))
     dp.add_handler(CommandHandler("add_admin", cmd_add_admin))

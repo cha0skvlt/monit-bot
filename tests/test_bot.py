@@ -54,6 +54,9 @@ def test_send_alert(monkeypatch):
     core.send_alert("hi")
     assert calls["chat_id"] == "CID"
     assert calls["text"] == "hi"
+    core.send_alert("hello", chat_id="X")
+    assert calls["chat_id"] == "X"
+    assert calls["text"] == "hello"
 
 
 def test_load_and_save_status(tmp_path, monkeypatch):
@@ -68,8 +71,11 @@ def test_load_and_save_status(tmp_path, monkeypatch):
 
 def test_check_ssl(monkeypatch):
     monkeypatch.setattr(core, "load_sites", lambda: ["https://ok.test", "https://bad.test"])
-    def fake_log(*a, **k):
-        pass
+    logged = []
+
+    def fake_log(ev):
+        logged.append(ev)
+
     monkeypatch.setattr(core, "log_event", fake_log)
 
     class FakeSocket:
@@ -99,6 +105,7 @@ def test_check_ssl(monkeypatch):
     result = core.check_ssl()
     assert "ok.test" in result
     assert "bad.test" in result
+    assert any(e["type"] == "ssl_alert" for e in logged)
 
 
 def _call_cmd(func, ctx_args=None):
@@ -145,7 +152,7 @@ def test_cmd_add_invalid(monkeypatch):
     assert "Invalid URL" in upd.message.texts[0]
 
 
-def test_cmd_rem(monkeypatch):
+def test_cmd_remove(monkeypatch):
     sites = ["x"]
     status = {"x": {"down_since": None}}
     monkeypatch.setattr(bot, "load_sites", lambda: sites)
@@ -156,8 +163,11 @@ def test_cmd_rem(monkeypatch):
         status.clear(); status.update(d)
     monkeypatch.setattr(bot, "save_sites", fake_save_sites)
     monkeypatch.setattr(bot, "save_status", fake_save_status)
-    upd = _call_cmd(bot.cmd_rem, ["x"])
-    assert "Removed" in upd.message.texts[0]
+    bot.PENDING.clear()
+    upd = _call_cmd(bot.cmd_remove, ["x"])
+    assert "Are you sure" in upd.message.texts[0]
+    upd2 = _call_cmd(bot.cmd_confirm)
+    assert "Removed" in upd2.message.texts[0]
     assert sites == [] and status == {}
 
 
@@ -212,14 +222,15 @@ def test_cmd_start():
     assert "SSL auto-check" in text
     assert "/status" in text
 
-    assert upd.message.texts[0] == "1\n2"
+def test_cmd_add_admin(monkeypatch):
+    added = []
     monkeypatch.setattr(bot, "add_admin", lambda i: added.append(i))
     upd = DummyUpdate()
     upd.effective_user.id = int(bot.OWNER_ID or 1)
     bot.OWNER_ID = "1"
     bot.load_admins = lambda: ["1"]
     bot.cmd_add_admin(upd, DummyContext(args=["2"]))
-    assert "Admin added" in upd.message.texts[0]
+    assert "✅ Admin 2 added." == upd.message.texts[0]
     assert "2" in added
 
 def test_cmd_rm_admin(monkeypatch):
@@ -229,9 +240,67 @@ def test_cmd_rm_admin(monkeypatch):
     upd.effective_user.id = int(bot.OWNER_ID or 1)
     bot.OWNER_ID = "1"
     bot.load_admins = lambda: ["1"]
+    bot.PENDING.clear()
     bot.cmd_rm_admin(upd, DummyContext(args=["2"]))
-    assert "Admin removed" in upd.message.texts[0]
+    assert "Are you sure" in upd.message.texts[0]
+    upd2 = DummyUpdate()
+    upd2.effective_user.id = int(bot.OWNER_ID or 1)
+    bot.cmd_confirm(upd2, DummyContext(args=[]))
+    assert "❌ Admin 2 removed." == upd2.message.texts[0]
     assert "2" in removed
+
+
+def test_admin_cmd_invalid(monkeypatch):
+    upd = DummyUpdate()
+    upd.effective_user.id = int(bot.OWNER_ID or 1)
+    bot.OWNER_ID = "1"
+    bot.load_admins = lambda: ["1"]
+    called = []
+    bot.add_admin = lambda i: called.append(i)
+    bot.cmd_add_admin(upd, DummyContext(args=["bad"]))
+    assert called == []
+    assert upd.message.texts[0] == "Invalid ID format"
+
+    upd2 = DummyUpdate()
+    upd2.effective_user.id = int(bot.OWNER_ID or 1)
+    bot.remove_admin = lambda i: called.append(f"rm:{i}")
+    bot.cmd_rm_admin(upd2, DummyContext(args=["bad"]))
+    assert called == []
+    assert upd2.message.texts[0] == "Invalid ID format"
+
+
+def test_action_logging(monkeypatch):
+    logs = []
+    monkeypatch.setattr(bot, "log_event", lambda d: logs.append(d))
+
+    sites = []
+    monkeypatch.setattr(bot, "load_sites", lambda: sites)
+    monkeypatch.setattr(bot, "save_sites", lambda x: sites.extend(x))
+    _call_cmd(bot.cmd_add, ["https://e.com"])
+    assert logs[-1]["command"] == "/add" and logs[-1]["user_id"] == "1"
+
+    monkeypatch.setattr(bot, "load_status", lambda: {"https://e.com": {"down_since": None}})
+    monkeypatch.setattr(bot, "save_status", lambda d: None)
+    bot.PENDING.clear()
+    _call_cmd(bot.cmd_remove, ["https://e.com"])
+    _call_cmd(bot.cmd_confirm)
+    assert logs[-1]["command"] == "/rem"
+
+    monkeypatch.setattr(bot, "add_admin", lambda uid: None)
+    _call_cmd(bot.cmd_add_admin, ["2"])
+    assert logs[-1]["command"] == "/add_admin" and logs[-1]["target"] == "2"
+
+    monkeypatch.setattr(bot, "remove_admin", lambda uid: None)
+    bot.PENDING.clear()
+    _call_cmd(bot.cmd_rm_admin, ["2"])
+    _call_cmd(bot.cmd_confirm)
+    assert logs[-1]["command"] == "/rm_admin"
+
+
+def test_confirm_no_pending(monkeypatch):
+    bot.PENDING.clear()
+    upd = _call_cmd(bot.cmd_confirm)
+    assert "Nothing to confirm" in upd.message.texts[0]
 
 
 
@@ -261,5 +330,6 @@ def test_start_bot(monkeypatch):
     bot.start_bot()
     assert "started" in events
     assert any(e.startswith("status:") for e in events)
+    assert any(e.startswith("confirm:") for e in events)
     assert "idle" in events
 
