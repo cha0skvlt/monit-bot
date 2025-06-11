@@ -181,24 +181,40 @@ def cmd_start(update: Update, ctx: CallbackContext):
 @with_typing
 @admin_only
 def cmd_add_admin(update: Update, ctx: CallbackContext):
-    """Adds a new admin by user ID."""
-    user_id = ctx.args[0] if ctx.args else None
-    if user_id:
-        add_admin(user_id)
-        update.message.reply_text(f"✅ Admin {user_id} added.")
-    else:
-        update.message.reply_text("⚠️ Usage: /add_admin <user_id>")
+
+    if str(update.effective_user.id) != (OWNER_ID or ""):
+        update.message.reply_text("Access denied.")
+        return
+    if not ctx.args:
+        update.message.reply_text("Usage: /add_admin <id>")
+        return
+    try:
+        admin_id = str(int(ctx.args[0]))
+    except ValueError:
+        update.message.reply_text("Invalid ID format")
+        return
+    add_admin(admin_id)
+    update.message.reply_text("Admin added.")
+
 
 @with_typing
 @admin_only
 def cmd_rm_admin(update: Update, ctx: CallbackContext):
-    """Removes an admin by user ID."""
-    user_id = ctx.args[0] if ctx.args else None
-    if user_id:
-        remove_admin(user_id)
-        update.message.reply_text(f"❌ Admin {user_id} removed.")
-    else:
-        update.message.reply_text("⚠️ Usage: /rm_admin <user_id>")
+
+    if str(update.effective_user.id) != (OWNER_ID or ""):
+        update.message.reply_text("Access denied.")
+        return
+    if not ctx.args:
+        update.message.reply_text("Usage: /rm_admin <id>")
+        return
+    try:
+        admin_id = str(int(ctx.args[0]))
+    except ValueError:
+        update.message.reply_text("Invalid ID format")
+        return
+    remove_admin(admin_id)
+    update.message.reply_text("Admin removed.")
+
 
 
 def background_loop():

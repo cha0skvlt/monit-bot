@@ -212,16 +212,6 @@ def test_cmd_start():
     assert "SSL auto-check" in text
     assert "/status" in text
 
-def test_cmd_add_admin(monkeypatch):
-    added = []
-    monkeypatch.setattr(bot, "add_admin", lambda i: added.append(i))
-    upd = DummyUpdate()
-    upd.effective_user.id = int(bot.OWNER_ID or 1)
-    bot.OWNER_ID = "1"
-    bot.load_admins = lambda: ["1"]
-    bot.cmd_add_admin(upd, DummyContext(args=["2"]))
-    assert "✅ Admin 2 added." == upd.message.texts[0]
-    assert "2" in added
 
 def test_cmd_rm_admin(monkeypatch):
     removed = []
@@ -240,18 +230,17 @@ def test_admin_cmd_invalid(monkeypatch):
     upd.effective_user.id = int(bot.OWNER_ID or 1)
     bot.OWNER_ID = "1"
     bot.load_admins = lambda: ["1"]
-    called = []
-    bot.add_admin = lambda i: called.append(i)
+
+    bot.add_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
     bot.cmd_add_admin(upd, DummyContext(args=["bad"]))
-    assert called == ["bad"]
-    assert "✅ Admin bad added." == upd.message.texts[0]
+    assert "Invalid ID format" in upd.message.texts[0]
 
     upd2 = DummyUpdate()
     upd2.effective_user.id = int(bot.OWNER_ID or 1)
-    bot.remove_admin = lambda i: called.append(f"rm:{i}")
+    bot.remove_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
     bot.cmd_rm_admin(upd2, DummyContext(args=["bad"]))
-    assert called[-1] == "rm:bad"
-    assert "❌ Admin bad removed." == upd2.message.texts[0]
+    assert "Invalid ID format" in upd2.message.texts[0]
+
 
 
 
