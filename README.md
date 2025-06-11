@@ -1,4 +1,4 @@
-# 🤖 Web Monitor Bot
+# 🤖 Web Monitor Bot 🜂 🜃
 
 ### V 2.0
 
