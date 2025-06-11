@@ -179,60 +179,16 @@ def is_valid_url(url: str) -> bool:
     p = urlparse(url)
     return p.scheme in {"http", "https"} and bool(p.hostname)
 
-def site_is_up(url: str) -> bool:
-    headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
-
-    try:
-        r = requests.head(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
-        if r.status_code == 200:
-            return True
-    except Exception:
-        pass
-
-    for i in range(3):
+def site_is_up(url):
+    for attempt in range(3):
         try:
-            r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
-
-            if r.status_code == 200:
-                return True
-            break
-        except Exception:
-
-            if i < 2:
+            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            return response.status_code == 200
+        except Exception as e:
+            if attempt < 2:
                 time.sleep(1)
             else:
-                pass
-
-
-    parsed = urlparse(url)
-    host = parsed.hostname
-    if not host:
-        return False
-    port = parsed.port or (443 if parsed.scheme == "https" else 80)
-    path = parsed.path or "/"
-    try:
-        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
-    except Exception:
-        return False
-    for family, socktype, proto, canonname, sockaddr in infos:
-        try:
-            with socket.create_connection(sockaddr, REQUEST_TIMEOUT) as conn:
-                if parsed.scheme == "https":
-                    ctx = ssl.create_default_context()
-                    with ctx.wrap_socket(conn, server_hostname=host) as s:
-                        req = f"HEAD {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
-                        s.sendall(req.encode())
-                        data = s.recv(12)
-                else:
-                    req = f"HEAD {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
-                    conn.sendall(req.encode())
-                    data = conn.recv(12)
-            if b"200" in data.split(b"\r\n")[0]:
-                return True
-        except Exception:
-            continue
-    return False
-
+                return False
 
 def check_sites():
     sites = load_sites()
