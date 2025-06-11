@@ -7,6 +7,7 @@ from logging import handlers
 import os
 import socket
 import ssl
+import re
 import sqlite3
 import threading
 import time
@@ -19,7 +20,7 @@ from dotenv import load_dotenv
 from telegram import Bot
 
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.getenv("CHAT_ID")
 LOG_FILE = os.getenv("LOG_FILE", "/app/logs/monitor.log")
 OWNER_ID = os.getenv("OWNER_ID")
@@ -36,6 +37,10 @@ REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))
 
 LEGACY_SITES_FILE = Path("/app/sites.txt")
 LEGACY_STATUS_FILE = Path("/app/status.json")
+
+URL_RE = re.compile(
+    r"^https?://(?:[A-Za-z0-9-]+\.)+[A-Za-z0-9-]+(?:[:/].*)?$"
+)
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 handler = logging.handlers.RotatingFileHandler(
@@ -104,13 +109,14 @@ def _get_bot():
         return _bot
 
 
-def send_alert(msg, disable_web_page_preview=True):
-    if not CHAT_ID:
+def send_alert(msg, disable_web_page_preview=True, chat_id=None):
+    target_id = chat_id or CHAT_ID
+    if not target_id:
         print("[send_alert] CHAT_ID not set")
         return
     try:
         _get_bot().send_message(
-            chat_id=CHAT_ID,
+            chat_id=target_id,
             text=msg,
             disable_web_page_preview=disable_web_page_preview,
         )
@@ -168,8 +174,10 @@ def remove_admin(admin_id: str):
         conn.commit()
 
 def is_valid_url(url: str) -> bool:
+    if not url or not URL_RE.match(url):
+        return False
     p = urlparse(url)
-    return p.scheme in {"http", "https"} and bool(p.netloc)
+    return p.scheme in {"http", "https"} and bool(p.hostname)
 
 def site_is_up(url: str) -> bool:
     headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
@@ -179,12 +187,17 @@ def site_is_up(url: str) -> bool:
             return True
     except Exception:
         pass
-    try:
-        r = requests.get(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
-        if r.status_code == 200:
-            return True
-    except Exception:
-        pass
+    for attempt in range(3):
+        try:
+            r = requests.get(
+                url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers
+            )
+            if r.status_code == 200:
+                return True
+            break
+        except Exception:
+            if attempt < 2:
+                time.sleep(1)
     parsed = urlparse(url)
     host = parsed.hostname
     if not host:
@@ -238,9 +251,12 @@ def check_sites():
     for site, ok in results:
         if ok:
             log_event({"type": "site_check", "site": site, "status": "up", "available": 1})
-            if site in status and status[site]["down_since"]:
+            prev = status.get(site)
+            if not prev:
+                status[site] = {"down_since": None}
+            elif prev.get("down_since"):
                 send_alert(f"✅ {site} is back online", disable_web_page_preview=True)
-            status[site] = {"down_since": None}
+                prev["down_since"] = None
         else:
             if site not in status or status[site]["down_since"] is None:
                 status[site] = {"down_since": now.isoformat()}
@@ -293,6 +309,12 @@ def check_ssl():
                         "days_left": days_left,
                     }
                 )
+                if days_left <= 7:
+                    log_event({
+                        "type": "ssl_alert",
+                        "site": hostname,
+                        "days_left": days_left,
+                    })
         except:
             results.append(f"❌ {hostname}: SSL certificate not available")
             log_event({"type": "ssl_check", "site": hostname, "status": "error"})
@@ -317,3 +339,6 @@ def daily_ssl_loop():
                 )
         except Exception as e:
             print(f"[daily_ssl_loop error] {e}")
+
+init_db()
+
