@@ -19,11 +19,13 @@ from core import (
     load_admins,
     add_admin,
     remove_admin,
+    log_event,
     OWNER_ID,
 )
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
+PENDING = {}
 
 def with_typing(func):
     def wrapper(update: Update, context: CallbackContext):
@@ -93,6 +95,12 @@ def cmd_add(update: Update, ctx: CallbackContext):
     else:
         sites.append(site)
         save_sites(sites)
+        log_event({
+            "type": "user_action",
+            "command": "/add",
+            "user_id": str(update.effective_user.id),
+            "target": site,
+        })
         update.message.reply_text(
             "✅ Added.",
             disable_web_page_preview=True,
@@ -115,12 +123,8 @@ def cmd_remove(update: Update, ctx: CallbackContext):
             disable_web_page_preview=True,
         )
     else:
-        sites.remove(site)
-        save_sites(sites)
-        status = load_status()
-        status.pop(site, None)
-        save_status(status)
-        update.message.reply_text("❌ Removed.", disable_web_page_preview=True)
+        PENDING[str(update.effective_user.id)] = ("rem", site)
+        update.message.reply_text("Are you sure? Reply /confirm to proceed.")
 
 @with_typing
 @admin_only
@@ -182,6 +186,7 @@ def cmd_start(update: Update, ctx: CallbackContext):
 @admin_only
 def cmd_add_admin(update: Update, ctx: CallbackContext):
 
+
     if str(update.effective_user.id) != (OWNER_ID or ""):
         update.message.reply_text("Access denied.")
         return
@@ -197,16 +202,21 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
     update.message.reply_text("Admin added.")
 
 
+
 @with_typing
 @admin_only
 def cmd_rm_admin(update: Update, ctx: CallbackContext):
 
     if str(update.effective_user.id) != (OWNER_ID or ""):
         update.message.reply_text("Access denied.")
+
         return
-    if not ctx.args:
-        update.message.reply_text("Usage: /rm_admin <id>")
+    try:
+        int(user_id)
+    except ValueError:
+        update.message.reply_text("Invalid ID format")
         return
+
     try:
         admin_id = str(int(ctx.args[0]))
     except ValueError:
@@ -214,7 +224,6 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
         return
     remove_admin(admin_id)
     update.message.reply_text("Admin removed.")
-
 
 
 def background_loop():

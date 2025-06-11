@@ -54,6 +54,9 @@ def test_send_alert(monkeypatch):
     core.send_alert("hi")
     assert calls["chat_id"] == "CID"
     assert calls["text"] == "hi"
+    core.send_alert("hello", chat_id="X")
+    assert calls["chat_id"] == "X"
+    assert calls["text"] == "hello"
 
 
 def test_load_and_save_status(tmp_path, monkeypatch):
@@ -68,8 +71,11 @@ def test_load_and_save_status(tmp_path, monkeypatch):
 
 def test_check_ssl(monkeypatch):
     monkeypatch.setattr(core, "load_sites", lambda: ["https://ok.test", "https://bad.test"])
-    def fake_log(*a, **k):
-        pass
+    logged = []
+
+    def fake_log(ev):
+        logged.append(ev)
+
     monkeypatch.setattr(core, "log_event", fake_log)
 
     class FakeSocket:
@@ -99,6 +105,7 @@ def test_check_ssl(monkeypatch):
     result = core.check_ssl()
     assert "ok.test" in result
     assert "bad.test" in result
+    assert any(e["type"] == "ssl_alert" for e in logged)
 
 
 def _call_cmd(func, ctx_args=None):
@@ -156,6 +163,7 @@ def test_cmd_remove(monkeypatch):
         status.clear(); status.update(d)
     monkeypatch.setattr(bot, "save_sites", fake_save_sites)
     monkeypatch.setattr(bot, "save_status", fake_save_status)
+
     upd = _call_cmd(bot.cmd_remove, ["x"])
     assert "Removed" in upd.message.texts[0]
     assert sites == [] and status == {}
@@ -220,6 +228,7 @@ def test_cmd_rm_admin(monkeypatch):
     upd.effective_user.id = int(bot.OWNER_ID or 1)
     bot.OWNER_ID = "1"
     bot.load_admins = lambda: ["1"]
+    bot.PENDING.clear()
     bot.cmd_rm_admin(upd, DummyContext(args=["2"]))
     assert "❌ Admin 2 removed." == upd.message.texts[0]
     assert "2" in removed
@@ -231,6 +240,7 @@ def test_admin_cmd_invalid(monkeypatch):
     bot.OWNER_ID = "1"
     bot.load_admins = lambda: ["1"]
 
+
     bot.add_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
     bot.cmd_add_admin(upd, DummyContext(args=["bad"]))
     assert "Invalid ID format" in upd.message.texts[0]
@@ -240,8 +250,6 @@ def test_admin_cmd_invalid(monkeypatch):
     bot.remove_admin = lambda i: (_ for _ in ()).throw(AssertionError("should not call"))
     bot.cmd_rm_admin(upd2, DummyContext(args=["bad"]))
     assert "Invalid ID format" in upd2.message.texts[0]
-
-
 
 
 def test_cmd_help_ru(monkeypatch):
@@ -270,5 +278,6 @@ def test_start_bot(monkeypatch):
     bot.start_bot()
     assert "started" in events
     assert any(e.startswith("status:") for e in events)
+    assert any(e.startswith("confirm:") for e in events)
     assert "idle" in events
 
