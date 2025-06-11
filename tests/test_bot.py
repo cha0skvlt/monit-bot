@@ -145,7 +145,7 @@ def test_cmd_add_invalid(monkeypatch):
     assert "Invalid URL" in upd.message.texts[0]
 
 
-def test_cmd_rem(monkeypatch):
+def test_cmd_remove(monkeypatch):
     sites = ["x"]
     status = {"x": {"down_since": None}}
     monkeypatch.setattr(bot, "load_sites", lambda: sites)
@@ -156,7 +156,7 @@ def test_cmd_rem(monkeypatch):
         status.clear(); status.update(d)
     monkeypatch.setattr(bot, "save_sites", fake_save_sites)
     monkeypatch.setattr(bot, "save_status", fake_save_status)
-    upd = _call_cmd(bot.cmd_rem, ["x"])
+    upd = _call_cmd(bot.cmd_remove, ["x"])
     assert "Removed" in upd.message.texts[0]
     assert sites == [] and status == {}
 

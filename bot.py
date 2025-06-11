@@ -100,7 +100,7 @@ def cmd_add(update: Update, ctx: CallbackContext):
 
 @with_typing
 @admin_only
-def cmd_rem(update: Update, ctx: CallbackContext):
+def cmd_remove(update: Update, ctx: CallbackContext):
     if not ctx.args:
         update.message.reply_text(
             "Usage: /rem https://example.com",
@@ -226,7 +226,7 @@ def start_bot():
     dp.add_handler(CommandHandler("status", cmd_status))
     dp.add_handler(CommandHandler("list", cmd_list))
     dp.add_handler(CommandHandler("add", cmd_add))
-    dp.add_handler(CommandHandler("rem", cmd_rem))
+    dp.add_handler(CommandHandler("rem", cmd_remove))
     dp.add_handler(CommandHandler("ssl", cmd_ssl_check))
     dp.add_handler(CommandHandler("help", cmd_help))
     dp.add_handler(CommandHandler("add_admin", cmd_add_admin))
