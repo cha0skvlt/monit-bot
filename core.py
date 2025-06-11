@@ -181,6 +181,7 @@ def is_valid_url(url: str) -> bool:
 
 def site_is_up(url: str) -> bool:
     headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
+
     try:
         r = requests.head(url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=headers)
         if r.status_code == 200:
@@ -201,6 +202,7 @@ def site_is_up(url: str) -> bool:
                 time.sleep(1)
             else:
                 pass
+
 
     parsed = urlparse(url)
     host = parsed.hostname
@@ -257,11 +259,13 @@ def check_sites():
             log_event({"type": "site_check", "site": site, "status": "up", "available": 1})
             prev = status.get(site)
 
+
             if prev and prev.get("down_since"):
                 send_alert(f"✅ {site} is back online", disable_web_page_preview=True)
                 prev["down_since"] = None
             else:
                 status[site] = {"down_since": None}
+
 
         else:
             if site not in status or status[site]["down_since"] is None:

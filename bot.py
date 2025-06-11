@@ -161,6 +161,7 @@ def help_text(lang: str) -> str:
             "/add_admin — добавить администратора\n"
             "/rm_admin — убрать администратора"
           
+
         )
     return (
         "🤖 Web monitoring bot:\n\n"
@@ -175,6 +176,7 @@ def help_text(lang: str) -> str:
         "/rem     — remove site\n"
         "/add_admin — add admin\n"
         "/rm_admin  — remove admin"
+
 
     )
 
@@ -200,7 +202,6 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
         update.message.reply_text("⚠️ Usage: /add_admin <user_id>")
         return
 
-
     if not ctx.args:
         update.message.reply_text("Usage: /add_admin <id>")
         return
@@ -211,6 +212,7 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
         return
     add_admin(admin_id)
     update.message.reply_text("Admin added.")
+
 
 
 
@@ -234,6 +236,7 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
     update.message.reply_text("Are you sure? Reply /confirm to proceed.")
 
 
+
     try:
         admin_id = str(int(ctx.args[0]))
     except ValueError:
@@ -241,6 +244,7 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
         return
     remove_admin(admin_id)
     update.message.reply_text("Admin removed.")
+
 
 
 
