@@ -117,22 +117,28 @@ def cmd_add(update: Update, ctx: CallbackContext):
 @with_typing
 @admin_only
 def cmd_remove(update: Update, ctx: CallbackContext):
-    if not ctx.args:
-        update.message.reply_text(
-            "Usage: /rem https://example.com",
-            disable_web_page_preview=True,
-        )
+    args = update.message.text.split()
+    if len(args) < 2:
+        update.message.reply_text("Usage: /rem https://example.com")
         return
-    site = ctx.args[0]
+
+    site = args[1].rstrip("/")  # убираем / в конце
     sites = load_sites()
+
     if site not in sites:
-        update.message.reply_text(
-            "Site not found.",
-            disable_web_page_preview=True,
-        )
-    else:
-        PENDING[str(update.effective_user.id)] = ("rem", site)
-        update.message.reply_text("Are you sure? Reply /confirm to proceed.")
+        update.message.reply_text("Site not found.")
+        return
+
+    sites.remove(site)
+    save_sites(sites)
+    log_event({
+        "type": "user_action",
+        "command": "/rem",
+        "user_id": str(update.effective_user.id),
+        "target": site,
+    })
+    update.message.reply_text(f"❌ Site removed: {site}")
+
 
 @with_typing
 @admin_only
@@ -160,7 +166,7 @@ def help_text(lang: str) -> str:
             "/rem — удалить сайт\n"
             "/add_admin — добавить администратора\n"
             "/rm_admin — убрать администратора"
-          
+
 
         )
     return (
@@ -176,7 +182,6 @@ def help_text(lang: str) -> str:
         "/rem     — remove site\n"
         "/add_admin — add admin\n"
         "/rm_admin  — remove admin"
-
 
     )
 
@@ -214,17 +219,12 @@ def cmd_add_admin(update: Update, ctx: CallbackContext):
     update.message.reply_text("Admin added.")
 
 
-
-
 @with_typing
 @owner_only
 def cmd_rm_admin(update: Update, ctx: CallbackContext):
 
-
-
     if str(update.effective_user.id) != (OWNER_ID or ""):
         update.message.reply_text("Access denied.")
-
 
         return
     try:
@@ -235,8 +235,6 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
     PENDING[str(update.effective_user.id)] = ("rm_admin", user_id)
     update.message.reply_text("Are you sure? Reply /confirm to proceed.")
 
-
-
     try:
         admin_id = str(int(ctx.args[0]))
     except ValueError:
@@ -244,10 +242,6 @@ def cmd_rm_admin(update: Update, ctx: CallbackContext):
         return
     remove_admin(admin_id)
     update.message.reply_text("Admin removed.")
-
-
-
-
 
 def background_loop():
     while True:
